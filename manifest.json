@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Freescribe Copilot",
+  "version": "1.0",
+  "description": "Select audio input and output devices, record audio, and play it back.",
+  "permissions": ["tabCapture"],
+  "action": {
+    "default_popup": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["welcome.html", "welcome.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
