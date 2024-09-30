@@ -43,6 +43,8 @@ navigator.mediaDevices
 recordButton.addEventListener("click", () => {
   let constraints = { audio: true };
 
+  audioChunks = [];
+
   // If the selected value starts with "audioinput_", it's our generated ID
   if (!audioInputSelect.value.startsWith("audioinput_")) {
     constraints.audio = { deviceId: { exact: audioInputSelect.value } };
@@ -59,6 +61,10 @@ recordButton.addEventListener("click", () => {
         let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
         let audioUrl = URL.createObjectURL(audioBlob);
         let audio = new Audio(audioUrl);
+
+        audio.onended = () => {
+          URL.revokeObjectURL(audioUrl);
+        };
 
         if (audio.setSinkId) {
           // Check if the selected value is a generated ID
