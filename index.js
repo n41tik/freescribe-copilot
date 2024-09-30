@@ -8,6 +8,8 @@ let stopButton = document.getElementById("stopButton");
 
 let deviceCounter = 0;
 
+let tabStream;
+
 // Use the standard Web Audio API to enumerate devices
 navigator.mediaDevices
   .enumerateDevices()
@@ -52,57 +54,99 @@ recordButton.addEventListener("click", () => {
 
   navigator.mediaDevices
     .getUserMedia(constraints)
-    .then((stream) => {
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.ondataavailable = (event) => {
-        audioChunks.push(event.data);
-      };
-      mediaRecorder.onstop = () => {
-        let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-        let audioUrl = URL.createObjectURL(audioBlob);
-        let audio = new Audio(audioUrl);
-
-        audio.onended = () => {
-          URL.revokeObjectURL(audioUrl);
-        };
-
-        if (audio.setSinkId) {
-          // Check if the selected value is a generated ID
-          if (audioOutputSelect.value.startsWith("audiooutput_")) {
-            console.warn("Using default audio output due to generated ID.");
-            audio.play();
-          } else {
-            audio
-              .setSinkId(audioOutputSelect.value)
-              .then(() => {
-                audio.play();
-              })
-              .catch((error) => {
-                console.warn(
-                  "Failed to set audio output device. Falling back to default output.",
-                  error
-                );
-                audio.play();
-              });
+    .then((micStream) => {
+      chrome.tabCapture.capture(
+        { audio: true, video: false },
+        (capturedTabStream) => {
+          if (chrome.runtime.lastError) {
+            console.error(chrome.runtime.lastError);
+            return;
           }
-        } else {
-          console.warn(
-            "setSinkId is not supported in this browser. Using default audio output."
-          );
-          audio.play();
+
+          tabStream = capturedTabStream;
+
+          const audioContext = new AudioContext();
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          const tabSource = audioContext.createMediaStreamSource(tabStream);
+          const destination = audioContext.createMediaStreamDestination();
+
+          // Create a gain node for the tab audio (for volume control if needed)
+          const tabGain = audioContext.createGain();
+          tabGain.gain.value = 1; // Set to 1 for passthrough, or adjust as needed
+
+          // Connect the tab audio to both the destination and the audio context destination (speakers)
+          tabSource.connect(tabGain);
+          tabGain.connect(destination);
+          tabGain.connect(audioContext.destination);
+
+          micSource.connect(destination);
+
+          const combinedStream = destination.stream;
+
+          mediaRecorder = new MediaRecorder(combinedStream);
+          mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+          };
+          mediaRecorder.onstop = () => {
+            let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            let audioUrl = URL.createObjectURL(audioBlob);
+            let audio = new Audio(audioUrl);
+
+            audio.onended = () => {
+              URL.revokeObjectURL(audioUrl);
+            };
+
+            if (audio.setSinkId) {
+              // Check if the selected value is a generated ID
+              if (audioOutputSelect.value.startsWith("audiooutput_")) {
+                console.warn("Using default audio output due to generated ID.");
+                audio.play();
+              } else {
+                audio
+                  .setSinkId(audioOutputSelect.value)
+                  .then(() => {
+                    audio.play();
+                  })
+                  .catch((error) => {
+                    console.warn(
+                      "Failed to set audio output device. Falling back to default output.",
+                      error
+                    );
+                    audio.play();
+                  });
+              }
+            } else {
+              console.warn(
+                "setSinkId is not supported in this browser. Using default audio output."
+              );
+              audio.play();
+            }
+          };
+          mediaRecorder.start();
+          recordButton.disabled = true;
+          stopButton.disabled = false;
+          // Disable select elements
+          audioInputSelect.disabled = true;
+          audioOutputSelect.disabled = true;
         }
-      };
-      mediaRecorder.start();
-      recordButton.disabled = true;
-      stopButton.disabled = false;
+      );
     })
     .catch((err) => {
-      console.error("Error accessing the microphone:", err);
+      console.error("Error accessing the microphone or tab audio:", err);
     });
 });
 
 stopButton.addEventListener("click", () => {
   mediaRecorder.stop();
+  if (tabStream) {
+    tabStream.getTracks().forEach((track) => track.stop());
+  }
+  if (audioContext) {
+    audioContext.close();
+  }
   recordButton.disabled = false;
   stopButton.disabled = true;
+  // Re-enable select elements
+  audioInputSelect.disabled = false;
+  audioOutputSelect.disabled = false;
 });
