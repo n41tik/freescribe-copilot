@@ -2,18 +2,16 @@
   "manifest_version": 3,
   "name": "Freescribe Copilot",
   "version": "1.0",
-  "description": "Select audio input and output devices, record audio, and play it back.",
-  "permissions": ["tabCapture"],
-  "action": {
-    "default_popup": "index.html"
+  "description": "Record and play audio from tab and microphone",
+  "permissions": ["activeTab", "tabCapture", "storage", "sidePanel"],
+  "host_permissions": ["<all_urls>"],
+  "side_panel": {
+    "default_path": "index.html"
   },
   "background": {
     "service_worker": "background.js"
   },
-  "web_accessible_resources": [
-    {
-      "resources": ["welcome.html", "welcome.js"],
-      "matches": ["<all_urls>"]
-    }
-  ]
+  "action": {
+    "default_title": "Open Freescribe Copilot"
+  }
 }

@@ -7,3 +7,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     active: true,
   });
 });
+
+chrome.action.onClicked.addListener((tab) => {
+  chrome.sidePanel.open({ windowId: tab.windowId });
+});
