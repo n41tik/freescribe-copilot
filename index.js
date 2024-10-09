@@ -1,6 +1,7 @@
 // Default values for configurable constants
 let config = {
   WHISPER_URL: "http://localhost:8000/whisperaudio",
+  WHISPER_API_KEY: "",
   AI_SCRIBE_URL: "http://localhost:1337/v1/chat/completions",
   AI_SCRIBE_MODEL: "gemma-2-2b-it",
   AI_SCRIBE_CONTEXT_BEFORE:
@@ -45,6 +46,7 @@ chrome.storage.sync.get(["config"], function (result) {
 // Update input fields with current config values
 function updateConfigInputs() {
   document.getElementById("whisperUrl").value = config.WHISPER_URL;
+  document.getElementById("whisperApiKey").value = config.WHISPER_API_KEY;
   document.getElementById("aiScribeUrl").value = config.AI_SCRIBE_URL;
   document.getElementById("aiScribeModel").value = config.AI_SCRIBE_MODEL;
   document.getElementById("aiScribeContextBefore").value =
@@ -65,7 +67,7 @@ const isValidUrl = (url) => {
 // Save configuration
 document.getElementById("saveConfig").addEventListener("click", function () {
   let whisperUrl = document.getElementById("whisperUrl").value;
-
+  let whisperApiKey = document.getElementById("whisperApiKey").value;
   if (!isValidUrl(whisperUrl)) {
     alert("Invalid Whisper URL");
     return;
@@ -87,6 +89,7 @@ document.getElementById("saveConfig").addEventListener("click", function () {
   ).value;
 
   config.WHISPER_URL = whisperUrl;
+  config.WHISPER_API_KEY = whisperApiKey;
   config.AI_SCRIBE_URL = aiScribeUrl;
   config.AI_SCRIBE_MODEL = aiScribeModel;
   config.AI_SCRIBE_CONTEXT_BEFORE = aiScribeContextBefore;
@@ -222,7 +225,7 @@ async function convertAudioToText(audioBlob) {
   formData.append("audio", audioBlob, "audio.wav");
 
   const headers = {
-    // "X-API-Key": editable_settings["Whisper Server API Key"],
+    "X-API-Key": config.WHISPER_API_KEY,
   };
 
   try {
