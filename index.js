@@ -1,15 +1,13 @@
-// whisper server url
-const WHISPER_URL =
-  "http://ec2-18-116-81-253.us-east-2.compute.amazonaws.com:8000/whisperaudio";
-// Jan AI url
-const AI_SCRIBE_URL = "http://localhost:1337/v1/chat/completions";
-const AI_SCRIBE_MODEL = "gemma-2-2b-it";
-
-const AI_SCRIBE_CONTEXT_BEFORE =
-  "AI, please transform the following conversation into a concise SOAP note. Do not assume any medical data, vital signs, or lab values. Base the note strictly on the information provided in the conversation. Ensure that the SOAP note is structured appropriately with Subjective, Objective, Assessment, and Plan sections. Strictly extract facts from the conversation. Here's the conversation:";
-const AI_SCRIBE_CONTEXT_AFTER =
-  "Remember, the Subjective section should reflect the patient's perspective and complaints as mentioned in the conversation. The Objective section should only include observable or measurable data from the conversation. The Assessment should be a summary of your understanding and potential diagnoses, considering the conversation's content. The Plan should outline the proposed management, strictly based on the dialogue provided. Do not add any information that did not occur and do not make assumptions. Strictly extract facts from the conversation.";
-
+// Default values for configurable constants
+let config = {
+  WHISPER_URL: "http://localhost:8000/whisperaudio",
+  AI_SCRIBE_URL: "http://localhost:1337/v1/chat/completions",
+  AI_SCRIBE_MODEL: "gemma-2-2b-it",
+  AI_SCRIBE_CONTEXT_BEFORE:
+    "AI, please transform the following conversation into a concise SOAP note. Do not assume any medical data, vital signs, or lab values. Base the note strictly on the information provided in the conversation. Ensure that the SOAP note is structured appropriately with Subjective, Objective, Assessment, and Plan sections. Strictly extract facts from the conversation. Here's the conversation:",
+  AI_SCRIBE_CONTEXT_AFTER:
+    "Remember, the Subjective section should reflect the patient's perspective and complaints as mentioned in the conversation. The Objective section should only include observable or measurable data from the conversation. The Assessment should be a summary of your understanding and potential diagnoses, considering the conversation's content. The Plan should outline the proposed management, strictly based on the dialogue provided. Do not add any information that did not occur and do not make assumptions. Strictly extract facts from the conversation.",
+};
 let mediaRecorder;
 let audioChunks = [];
 let audioContext;
@@ -20,6 +18,59 @@ let stopButton = document.getElementById("stopButton");
 let deviceCounter = 0;
 
 let tabStream;
+
+// Toggle configuration visibility
+document.getElementById("toggleConfig").addEventListener("click", function () {
+  const configSection = document.getElementById("configSection");
+  if (
+    configSection.style.display === "none" ||
+    configSection.style.display === ""
+  ) {
+    configSection.style.display = "block";
+    this.textContent = "Hide Configuration";
+  } else {
+    configSection.style.display = "none";
+    this.textContent = "Show Configuration";
+  }
+});
+
+// Load configuration from storage
+chrome.storage.sync.get(["config"], function (result) {
+  console.log("Loading configuration from storage:", result);
+  if (result.config) {
+    config = { ...config, ...result.config };
+  }
+  updateConfigInputs();
+});
+
+// Update input fields with current config values
+function updateConfigInputs() {
+  document.getElementById("whisperUrl").value = config.WHISPER_URL;
+  document.getElementById("aiScribeUrl").value = config.AI_SCRIBE_URL;
+  document.getElementById("aiScribeModel").value = config.AI_SCRIBE_MODEL;
+  document.getElementById("aiScribeContextBefore").value =
+    config.AI_SCRIBE_CONTEXT_BEFORE;
+  document.getElementById("aiScribeContextAfter").value =
+    config.AI_SCRIBE_CONTEXT_AFTER;
+}
+
+// Save configuration
+document.getElementById("saveConfig").addEventListener("click", function () {
+  config.WHISPER_URL = document.getElementById("whisperUrl").value;
+  config.AI_SCRIBE_URL = document.getElementById("aiScribeUrl").value;
+  config.AI_SCRIBE_MODEL = document.getElementById("aiScribeModel").value;
+  config.AI_SCRIBE_CONTEXT_BEFORE = document.getElementById(
+    "aiScribeContextBefore"
+  ).value;
+  config.AI_SCRIBE_CONTEXT_AFTER = document.getElementById(
+    "aiScribeContextAfter"
+  ).value;
+
+  chrome.storage.sync.set({ config: config }, function () {
+    console.log("Configuration saved");
+    alert("Configuration saved successfully!");
+  });
+});
 
 // Use the standard Web Audio API to enumerate devices
 navigator.mediaDevices
@@ -149,7 +200,7 @@ async function convertAudioToText(audioBlob) {
   };
 
   try {
-    const response = await fetch(WHISPER_URL, {
+    const response = await fetch(configWHISPER_URL, {
       method: "POST",
       headers: headers,
       body: formData,
@@ -195,16 +246,16 @@ generateSoapButton.addEventListener("click", () => {
 async function generateSoapNotes(text) {
   console.log("Generating SOAP notes for:", text);
 
-  const prompt = `${AI_SCRIBE_CONTEXT_BEFORE} ${text} ${AI_SCRIBE_CONTEXT_AFTER}`;
+  const prompt = `${config.AI_SCRIBE_CONTEXT_BEFORE} ${text} ${config.AI_SCRIBE_CONTEXT_AFTER}`;
 
   try {
-    const response = await fetch(AI_SCRIBE_URL, {
+    const response = await fetch(config.AI_SCRIBE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: AI_SCRIBE_MODEL,
+        model: config.AI_SCRIBE_MODEL,
         messages: [
           {
             role: "user",
