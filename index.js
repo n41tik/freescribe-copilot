@@ -1,6 +1,14 @@
 // whisper server url
 const WHISPER_URL =
   "http://ec2-18-116-81-253.us-east-2.compute.amazonaws.com:8000/whisperaudio";
+// Jan AI url
+const AI_SCRIBE_URL = "http://localhost:1337/v1/chat/completions";
+const AI_SCRIBE_MODEL = "gemma-2-2b-it";
+
+const AI_SCRIBE_CONTEXT_BEFORE =
+  "AI, please transform the following conversation into a concise SOAP note. Do not assume any medical data, vital signs, or lab values. Base the note strictly on the information provided in the conversation. Ensure that the SOAP note is structured appropriately with Subjective, Objective, Assessment, and Plan sections. Strictly extract facts from the conversation. Here's the conversation:";
+const AI_SCRIBE_CONTEXT_AFTER =
+  "Remember, the Subjective section should reflect the patient's perspective and complaints as mentioned in the conversation. The Objective section should only include observable or measurable data from the conversation. The Assessment should be a summary of your understanding and potential diagnoses, considering the conversation's content. The Plan should outline the proposed management, strictly based on the dialogue provided. Do not add any information that did not occur and do not make assumptions. Strictly extract facts from the conversation.";
 
 let mediaRecorder;
 let audioChunks = [];
@@ -96,10 +104,11 @@ recordButton.addEventListener("click", () => {
               URL.revokeObjectURL(audioUrl);
             };
 
-            audio.play();
+            // NOTE: If needed, uncomment the following line to play the audio
+            // audio.play();
 
             // send audio to whisper server
-            sendAudioToServer(audioBlob).then((result) => {
+            convertAudioToText(audioBlob).then((result) => {
               updateGUI(result.text);
             });
           };
@@ -130,7 +139,7 @@ stopButton.addEventListener("click", () => {
   audioInputSelect.disabled = false;
 });
 
-async function sendAudioToServer(audioBlob) {
+async function convertAudioToText(audioBlob) {
   console.log("Sending audio to server");
   const formData = new FormData();
   formData.append("audio", audioBlob, "audio.wav");
@@ -165,4 +174,63 @@ function updateGUI(text) {
   const userInput = document.getElementById("userInput");
   userInput.value += text + "\n";
   userInput.scrollTop = userInput.scrollHeight;
+}
+
+// Add this near the top of your file with other element selections
+let generateSoapButton = document.getElementById("generateSoapButton");
+
+// Add this event listener at the end of your file
+generateSoapButton.addEventListener("click", () => {
+  const transcribedText = document.getElementById("userInput").value;
+  if (transcribedText.trim() === "") {
+    alert("Please record some audio first.");
+    return;
+  }
+
+  // Call a function to generate SOAP notes
+  generateSoapNotes(transcribedText);
+});
+
+// Generate SOAP notes
+async function generateSoapNotes(text) {
+  console.log("Generating SOAP notes for:", text);
+
+  const prompt = `${AI_SCRIBE_CONTEXT_BEFORE} ${text} ${AI_SCRIBE_CONTEXT_AFTER}`;
+
+  try {
+    const response = await fetch(AI_SCRIBE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: AI_SCRIBE_MODEL,
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.7,
+        max_tokens: 800,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const soapNotes = result.choices[0].message.content;
+    displaySoapNotes(soapNotes);
+  } catch (error) {
+    console.error("Error generating SOAP notes:", error);
+    alert("Error generating SOAP notes. Please try again.");
+  }
+}
+
+// Display SOAP notes
+function displaySoapNotes(soapNotes) {
+  const soapNotesElement = document.getElementById("soapNotes");
+  soapNotesElement.textContent = soapNotes;
 }
