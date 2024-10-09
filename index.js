@@ -36,7 +36,6 @@ document.getElementById("toggleConfig").addEventListener("click", function () {
 
 // Load configuration from storage
 chrome.storage.sync.get(["config"], function (result) {
-  console.log("Loading configuration from storage:", result);
   if (result.config) {
     config = { ...config, ...result.config };
   }
@@ -54,17 +53,44 @@ function updateConfigInputs() {
     config.AI_SCRIBE_CONTEXT_AFTER;
 }
 
+const isValidUrl = (url) => {
+  try {
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
 // Save configuration
 document.getElementById("saveConfig").addEventListener("click", function () {
-  config.WHISPER_URL = document.getElementById("whisperUrl").value;
-  config.AI_SCRIBE_URL = document.getElementById("aiScribeUrl").value;
-  config.AI_SCRIBE_MODEL = document.getElementById("aiScribeModel").value;
-  config.AI_SCRIBE_CONTEXT_BEFORE = document.getElementById(
+  let whisperUrl = document.getElementById("whisperUrl").value;
+
+  if (!isValidUrl(whisperUrl)) {
+    alert("Invalid Whisper URL");
+    return;
+  }
+
+  let aiScribeUrl = document.getElementById("aiScribeUrl").value;
+
+  if (!isValidUrl(aiScribeUrl)) {
+    alert("Invalid AI Scribe URL");
+    return;
+  }
+
+  let aiScribeModel = document.getElementById("aiScribeModel").value;
+  let aiScribeContextBefore = document.getElementById(
     "aiScribeContextBefore"
   ).value;
-  config.AI_SCRIBE_CONTEXT_AFTER = document.getElementById(
+  let aiScribeContextAfter = document.getElementById(
     "aiScribeContextAfter"
   ).value;
+
+  config.WHISPER_URL = whisperUrl;
+  config.AI_SCRIBE_URL = aiScribeUrl;
+  config.AI_SCRIBE_MODEL = aiScribeModel;
+  config.AI_SCRIBE_CONTEXT_BEFORE = aiScribeContextBefore;
+  config.AI_SCRIBE_CONTEXT_AFTER = aiScribeContextAfter;
 
   chrome.storage.sync.set({ config: config }, function () {
     console.log("Configuration saved");
@@ -200,7 +226,7 @@ async function convertAudioToText(audioBlob) {
   };
 
   try {
-    const response = await fetch(configWHISPER_URL, {
+    const response = await fetch(config.WHISPER_URL, {
       method: "POST",
       headers: headers,
       body: formData,
@@ -211,12 +237,12 @@ async function convertAudioToText(audioBlob) {
     }
 
     const result = await response.json();
-    console.log(result);
     return result;
   } catch (error) {
-    console.error("Error sending audio to server:", error);
-    throw new Error(`Failed to convert audio to text: ${error.message}`, { cause: error });
-  }
+    console.error("Audio to text conversion error:", error);
+    throw new Error(`Failed to convert audio to text: ${error.message}`, {
+      cause: error,
+    });
   }
 }
 
@@ -243,11 +269,27 @@ generateSoapButton.addEventListener("click", () => {
   generateSoapNotes(transcribedText);
 });
 
+// Sanitize input to prevent XSS attacks
+function sanitizeInput(input) {
+  return input.replace(/[<>&'"]/g, (char) => {
+    const entities = {
+      "<": "&lt;",
+      ">": "&gt;",
+      "&": "&amp;",
+      "'": "&#39;",
+      '"': "&quot;",
+    };
+    return entities[char];
+  });
+}
+
 // Generate SOAP notes
 async function generateSoapNotes(text) {
-  console.log("Generating SOAP notes for:", text);
+  console.log("Generating SOAP notes");
 
-  const prompt = `${config.AI_SCRIBE_CONTEXT_BEFORE} ${text} ${config.AI_SCRIBE_CONTEXT_AFTER}`;
+  const sanitizedText = sanitizeInput(text);
+
+  const prompt = `${config.AI_SCRIBE_CONTEXT_BEFORE} ${sanitizedText} ${config.AI_SCRIBE_CONTEXT_AFTER}`;
 
   try {
     const response = await fetch(config.AI_SCRIBE_URL, {
