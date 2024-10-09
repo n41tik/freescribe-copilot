@@ -1,8 +1,11 @@
+// whisper server url
+const WHISPER_URL =
+  "http://ec2-18-116-81-253.us-east-2.compute.amazonaws.com:8000/whisperaudio";
+
 let mediaRecorder;
 let audioChunks = [];
 let audioContext;
 let audioInputSelect = document.getElementById("audioInputSelect");
-let audioOutputSelect = document.getElementById("audioOutputSelect");
 let recordButton = document.getElementById("recordButton");
 let stopButton = document.getElementById("stopButton");
 
@@ -14,7 +17,6 @@ let tabStream;
 navigator.mediaDevices
   .enumerateDevices()
   .then((devices) => {
-    console.log(devices);
     devices.forEach((device) => {
       let option = document.createElement("option");
       if (device.deviceId && device.deviceId !== "") {
@@ -33,8 +35,6 @@ navigator.mediaDevices
 
       if (device.kind === "audioinput") {
         audioInputSelect.appendChild(option);
-      } else if (device.kind === "audiooutput") {
-        audioOutputSelect.appendChild(option);
       }
     });
   })
@@ -96,38 +96,18 @@ recordButton.addEventListener("click", () => {
               URL.revokeObjectURL(audioUrl);
             };
 
-            if (audio.setSinkId) {
-              // Check if the selected value is a generated ID
-              if (audioOutputSelect.value.startsWith("audiooutput_")) {
-                console.warn("Using default audio output due to generated ID.");
-                audio.play();
-              } else {
-                audio
-                  .setSinkId(audioOutputSelect.value)
-                  .then(() => {
-                    audio.play();
-                  })
-                  .catch((error) => {
-                    console.warn(
-                      "Failed to set audio output device. Falling back to default output.",
-                      error
-                    );
-                    audio.play();
-                  });
-              }
-            } else {
-              console.warn(
-                "setSinkId is not supported in this browser. Using default audio output."
-              );
-              audio.play();
-            }
+            audio.play();
+
+            // send audio to whisper server
+            sendAudioToServer(audioBlob).then((result) => {
+              updateGUI(result.text);
+            });
           };
           mediaRecorder.start();
           recordButton.disabled = true;
           stopButton.disabled = false;
           // Disable select elements
           audioInputSelect.disabled = true;
-          audioOutputSelect.disabled = true;
         }
       );
     })
@@ -148,5 +128,41 @@ stopButton.addEventListener("click", () => {
   stopButton.disabled = true;
   // Re-enable select elements
   audioInputSelect.disabled = false;
-  audioOutputSelect.disabled = false;
 });
+
+async function sendAudioToServer(audioBlob) {
+  console.log("Sending audio to server");
+  const formData = new FormData();
+  formData.append("audio", audioBlob, "audio.wav");
+
+  const headers = {
+    // "X-API-Key": editable_settings["Whisper Server API Key"],
+  };
+
+  try {
+    const response = await fetch(WHISPER_URL, {
+      method: "POST",
+      headers: headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(result);
+    return result;
+  } catch (error) {
+    console.error("Error sending audio to server:", error);
+    throw error;
+  }
+}
+
+function updateGUI(text) {
+  // Update your GUI with the transcribed text
+  // This might involve updating a DOM element
+  const userInput = document.getElementById("userInput");
+  userInput.value += text + "\n";
+  userInput.scrollTop = userInput.scrollHeight;
+}
