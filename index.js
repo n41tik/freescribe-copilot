@@ -215,7 +215,8 @@ async function convertAudioToText(audioBlob) {
     return result;
   } catch (error) {
     console.error("Error sending audio to server:", error);
-    throw error;
+    throw new Error(`Failed to convert audio to text: ${error.message}`, { cause: error });
+  }
   }
 }
 
