@@ -1,20 +1,225 @@
+@import "../node_modules/bootstrap/scss/bootstrap";
+
+// Custom variables
+$primary-color: #007bff;
+$secondary-color: #6c757d;
+$background-color: #f8f9fa;
+$border-color: #dee2e6;
+
+// Common styles
 body {
-  width: 300px;
-  padding: 10px;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: $background-color;
 }
+
+h3 {
+  color: $primary-color;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
 select,
 button,
 textarea,
 input {
-  width: 100%;
-  padding: 10px;
-  margin: 5px 0;
+  @extend .form-control;
+  margin-bottom: 1rem;
 }
+
+button {
+  @extend .btn;
+  @extend .btn-primary;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  &:disabled {
+    @extend .btn-secondary;
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+// Popup-specific styles
+.popup-container {
+  width: 350px;
+  padding: 20px;
+
+  .container {
+    max-width: 100%;
+  }
+}
+
+// Options page-specific styles
+.options-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+#toggleConfig {
+  text-decoration: none;
+  color: $secondary-color;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+
+  &:hover {
+    text-decoration: underline;
+    color: darken($secondary-color, 15%);
+  }
+}
+
+#recordButton {
+  @extend .btn-success;
+}
+
+#stopButton {
+  @extend .btn-danger;
+}
+
+#generateNotesButton {
+  @extend .btn-info;
+}
+
 #notes {
-  background-color: #f0f0f0;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  background-color: white;
+  padding: 15px;
+  border: 1px solid $border-color;
+  border-radius: 0.25rem;
   width: 100%;
   text-wrap: wrap;
+  margin-top: 1rem;
+  display: none;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#configSection {
+  background-color: white;
+  border: 1px solid $border-color;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05);
+}
+
+.config-item {
+  margin-bottom: 1.5rem;
+
+  label {
+    @extend .form-label;
+    font-weight: 600;
+    color: $secondary-color;
+    margin-bottom: 0.5rem;
+  }
+
+  input[type="text"],
+  textarea {
+    @extend .form-control;
+    border-color: $border-color;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+    }
+  }
+
+  input[type="checkbox"] {
+    @extend .form-check-input;
+    margin-right: 0.5rem;
+  }
+}
+
+#saveConfig,
+#closeButton {
+  @extend .btn;
+  padding: 0.5rem 1rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+}
+
+#saveConfig {
+  @extend .btn-primary;
+}
+
+#closeButton {
+  @extend .btn-danger;
+}
+
+// Add some animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+// Welcome page styles
+.welcome-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: $background-color;
+  padding: 2rem;
+}
+
+.content {
+  max-width: 800px;
+  background-color: white;
+  border-radius: 1rem;
+  padding: 3rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+  color: $primary-color;
+  font-weight: 700;
+}
+
+h2 {
+  color: $secondary-color;
+  font-weight: 600;
+}
+
+.lead {
+  font-size: 1.2rem;
+  color: $secondary-color;
+}
+
+.feature-list {
+  list-style-type: none;
+  padding-left: 0;
+
+  li {
+    padding-left: 1.5rem;
+    position: relative;
+    margin-bottom: 0.5rem;
+
+    &::before {
+      content: "✓";
+      color: $primary-color;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  }
+}
+
+#configureLink {
+  @extend .btn-lg;
 }
