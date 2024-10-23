@@ -22,54 +22,31 @@ function showConfig() {
 }
 
 function updateConfig() {
-  let transcriptionUrl = document.getElementById("transcriptionUrl").value;
-  let transcriptionApiKey = document.getElementById(
+  config.TRANSCRIPTION_URL = document.getElementById("transcriptionUrl").value;
+  config.TRANSCRIPTION_API_KEY = document.getElementById(
     "transcriptionApiKey"
   ).value;
-  let llmUrl = document.getElementById("llmUrl").value;
-  let llmModel = document.getElementById("llmModel").value;
-  let llmContextBefore = document.getElementById("llmContextBefore").value;
-  let llmContextAfter = document.getElementById("llmContextAfter").value;
-  let realtime = document.getElementById("realtimeToggle").checked;
-  let realtimeRecordingLength = parseInt(
+  config.LLM_URL = document.getElementById("llmUrl").value;
+  config.LLM_MODEL = document.getElementById("llmModel").value;
+  config.LLM_CONTEXT_BEFORE = document.getElementById("llmContextBefore").value;
+  config.LLM_CONTEXT_AFTER = document.getElementById("llmContextAfter").value;
+  config.REALTIME = document.getElementById("realtimeToggle").checked;
+  config.REALTIME_RECODING_LENGTH = parseInt(
     document.getElementById("realtimeRecordingLength").value
   );
-  let silenceThreshold = parseFloat(
+  config.SILENCE_THRESHOLD = parseFloat(
     document.getElementById("silenceThreshold").value
   );
-  let minSilenceDuration = parseInt(
+  config.MIN_SILENCE_DURATION = parseInt(
     document.getElementById("minSilenceDuration").value
   );
-  let debugMode = document.getElementById("debugMode").checked;
+  config.DEBUG_MODE = document.getElementById("debugMode").checked;
 
-  if (!isValidUrl(transcriptionUrl)) {
-    alert("Invalid Transcription URL");
-    return;
-  }
-
-  if (!isValidUrl(llmUrl)) {
-    alert("Invalid LLM URL");
-    return;
-  }
-
-  config.TRANSCRIPTION_URL = transcriptionUrl;
-  config.TRANSCRIPTION_API_KEY = transcriptionApiKey;
-  config.LLM_URL = llmUrl;
-  config.LLM_MODEL = llmModel;
-  config.LLM_CONTEXT_BEFORE = llmContextBefore;
-  config.LLM_CONTEXT_AFTER = llmContextAfter;
-  config.REALTIME = realtime;
-  config.REALTIME_RECODING_LENGTH = realtimeRecordingLength;
-  config.SILENCE_THRESHOLD = silenceThreshold;
-  config.MIN_SILENCE_DURATION = minSilenceDuration;
-  config.DEBUG_MODE = debugMode;
-
+  // Save configuration
   saveConfig(config).then(function () {
     Logger.info("Configuration saved!");
     alert("Configuration saved!");
-    chrome.tabs.getCurrent(function (tab) {
-      chrome.tabs.remove(tab.id, function () {});
-    });
+    closeTab(); // Close the tab after saving
   });
 }
 
@@ -82,10 +59,94 @@ function closeTab() {
 document.addEventListener("DOMContentLoaded", async function (event) {
   config = await loadConfig();
   showConfig();
-});
 
-// Save configuration
-document.getElementById("saveConfig").addEventListener("click", updateConfig);
+  // Custom URL validation method
+  $.validator.addMethod(
+    "customUrl",
+    function (value, element) {
+      return this.optional(element) || isValidUrl(value);
+    },
+    "Please enter a valid URL."
+  );
+
+  $("#configForm").validate({
+    errorClass: "text-danger small",
+    rules: {
+      transcriptionUrl: {
+        required: true,
+        customUrl: true,
+      },
+      transcriptionApiKey: {
+        required: true,
+      },
+      llmUrl: {
+        required: true,
+        customUrl: true,
+      },
+      llmModel: {
+        required: true,
+      },
+      llmContextBefore: {
+        required: true,
+      },
+      llmContextAfter: {
+        required: true,
+      },
+      realtimeRecordingLength: {
+        required: true,
+        min: 5,
+        max: 10,
+      },
+      silenceThreshold: {
+        required: true,
+        min: 0,
+      },
+      minSilenceDuration: {
+        required: true,
+        min: 500,
+      },
+    },
+    messages: {
+      transcriptionUrl: {
+        required: "Please enter the Transcription Server URL.",
+        customUrl:
+          "Please enter a valid URL format for the Transcription Server.",
+      },
+      transcriptionApiKey: {
+        required: "Please enter the Transcription Server API Key.",
+      },
+      llmUrl: {
+        required: "Please enter the LLM URL.",
+        customUrl: "Please enter a valid URL format for the LLM.",
+      },
+      llmModel: {
+        required: "Please enter the LLM Model.",
+      },
+      llmContextBefore: {
+        required: "Please enter the LLM Context used before the prompt.",
+      },
+      llmContextAfter: {
+        required: "Please enter the LLM Context used after the prompt.",
+      },
+      realtimeRecordingLength: {
+        required: "Please enter the Realtime Recording Length.",
+        min: "The Realtime Recording Length must be at least 5 seconds.",
+        max: "The Realtime Recording Length cannot exceed 10 seconds.",
+      },
+      silenceThreshold: {
+        required: "Please enter the Silence Threshold.",
+        min: "The Silence Threshold must be at least 0.",
+      },
+      minSilenceDuration: {
+        required: "Please enter the Minimum Silence Duration.",
+        min: "The Minimum Silence Duration must be at least 500 milliseconds.",
+      },
+    },
+    submitHandler: function (form) {
+      updateConfig();
+    },
+  });
+});
 
 // Close without saving
 document.getElementById("closeButton").addEventListener("click", closeTab);
