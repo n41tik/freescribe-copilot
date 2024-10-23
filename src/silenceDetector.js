@@ -2,7 +2,6 @@ export class SilenceDetector {
   constructor(config) {
     this.config = config;
     this.silenceStart = null;
-    this.recordingStartTime = null;
   }
 
   detect(inputData, currentTime) {

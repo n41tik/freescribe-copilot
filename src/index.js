@@ -125,20 +125,20 @@ recordButton.addEventListener("click", async () => {
           };
 
           if (config.REALTIME) {
-            const silenceDetector = new SilenceDetector(config);
-
             scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
             micSource.connect(scriptProcessor);
             tabSource.connect(scriptProcessor);
             scriptProcessor.connect(audioContext.destination);
 
+            const silenceDetector = new SilenceDetector(config);
             let recordingStartTime = Date.now();
             let minRecordingLength = config.REALTIME_RECODING_LENGTH * 1000;
 
             scriptProcessor.onaudioprocess = function (event) {
               const currentTime = Date.now();
+              const recordingDuration = currentTime - recordingStartTime;
+
               if (recordingDuration < minRecordingLength) {
-                // Don't check for silence during the first 5 seconds
                 return;
               }
 
