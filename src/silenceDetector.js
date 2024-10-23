@@ -14,7 +14,10 @@ export class SilenceDetector {
   }
 
   calculateAverage(inputData) {
-    const total = inputData.reduce((sum, value) => sum + Math.abs(value), 0);
+    let total = 0;
+    for (let i = 0; i < inputData.length; i++) {
+      total += Math.abs(inputData[i]);
+    }
     return total / inputData.length;
   }
 
