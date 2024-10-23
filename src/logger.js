@@ -4,7 +4,7 @@ export class Logger {
   constructor() {}
 
   static log(...messages) {
-    let logging = getConfig("ENABLE_LOGGING");
+    let logging = getConfig("DEBUG_MODE");
 
     if (logging) {
       console.log(messages);
@@ -12,7 +12,7 @@ export class Logger {
   }
 
   static info(...messages) {
-    let logging = getConfig("ENABLE_LOGGING");
+    let logging = getConfig("DEBUG_MODE");
 
     if (logging) {
       console.log(messages);
@@ -20,7 +20,7 @@ export class Logger {
   }
 
   static debug(...messages) {
-    let logging = getConfig("ENABLE_LOGGING");
+    let logging = getConfig("DEBUG_MODE");
 
     if (logging) {
       console.debug(messages);
@@ -28,7 +28,7 @@ export class Logger {
   }
 
   static error(...messages) {
-    let logging = getConfig("ENABLE_LOGGING");
+    let logging = getConfig("DEBUG_MODE");
 
     if (logging) {
       console.error(messages);

@@ -270,6 +270,10 @@ async function generateNotes(text) {
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
 
   try {
+    // Show loading indicator
+    notesElement.textContent = "Generating notes...";
+    notesElement.style.display = "block";
+
     const response = await fetch(config.LLM_URL, {
       method: "POST",
       headers: {
@@ -295,9 +299,10 @@ async function generateNotes(text) {
     const result = await response.json();
     const notes = result.choices[0].message.content;
     notesElement.textContent = notes;
+    notesElement.style.display = "block";
   } catch (error) {
     Logger.error("Error generating notes:", error);
-    alert("Error generating notes. Please try again.");
+    notesElement.textContent = "Error generating notes. Please try again.";
   }
 }
 
