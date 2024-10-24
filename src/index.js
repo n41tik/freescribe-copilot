@@ -1,10 +1,10 @@
 import { loadConfig } from "./config.js";
 import { sanitizeInput } from "./helpers.js";
 import { Logger } from "./logger.js";
+import { SilenceDetector } from "./silenceDetector.js";
 
 let config;
 let mediaRecorder;
-let mediaRecorderInterval;
 let audioChunks = [];
 let audioContext;
 let audioInputSelect = document.getElementById("audioInputSelect");
@@ -15,8 +15,6 @@ let notesElement = document.getElementById("notes");
 let toggleConfig = document.getElementById("toggleConfig");
 let generateNotesButton = document.getElementById("generateNotesButton");
 let scriptProcessor;
-let silenceStart = null;
-let recordingStartTime = null;
 let deviceCounter = 0;
 let tabStream;
 
@@ -132,52 +130,33 @@ recordButton.addEventListener("click", async () => {
             tabSource.connect(scriptProcessor);
             scriptProcessor.connect(audioContext.destination);
 
-            recordingStartTime = Date.now();
-            silenceStart = null;
-            minRecordingLength = config.REALTIME_RECODING_LENGTH * 1000;
+            const silenceDetector = new SilenceDetector(config);
+            let recordingStartTime = Date.now();
+            let minRecordingLength = config.REALTIME_RECODING_LENGTH * 1000;
 
             scriptProcessor.onaudioprocess = function (event) {
               const currentTime = Date.now();
               const recordingDuration = currentTime - recordingStartTime;
 
               if (recordingDuration < minRecordingLength) {
-                // Don't check for silence during the first 5 seconds
                 return;
               }
 
               const inputData = event.inputBuffer.getChannelData(0);
-              const inputDataLength = inputData.length;
-              let total = 0;
 
-              for (let i = 0; i < inputDataLength; i++) {
-                total += Math.abs(inputData[i]);
-              }
+              if (silenceDetector.detect(inputData, currentTime)) {
+                Logger.log("silence detected");
+                // Stop the current mediaRecorder
+                mediaRecorder.stop();
 
-              const average = total / inputDataLength;
-
-              if (average < config.SILENCE_THRESHOLD) {
-                if (silenceStart === null) {
-                  silenceStart = currentTime;
-                } else {
-                  const silenceDuration = currentTime - silenceStart;
-                  if (silenceDuration > config.MIN_SILENCE_DURATION) {
-                    Logger.log("silence detected");
-                    silenceStart = null;
-
-                    // Stop the current mediaRecorder
-                    mediaRecorder.stop();
-
-                    // Start a new mediaRecorder after a short delay
-                    setTimeout(() => {
-                      mediaRecorder.start();
-                      recordingStartTime = Date.now(); // Reset the recording start time
-                      Logger.log("New recording started after silence");
-                    }, 50); // 50ms delay before starting new recording
-                  }
-                }
+                // Start a new mediaRecorder after a short delay
+                setTimeout(() => {
+                  mediaRecorder.start();
+                  recordingStartTime = Date.now(); // Reset the recording start time
+                  Logger.log("New recording started after silence");
+                }, 50); // 50ms delay before starting new recording
               } else {
                 Logger.log("voice detected");
-                silenceStart = null;
               }
             };
           }
@@ -199,10 +178,6 @@ stopButton.addEventListener("click", () => {
   if (scriptProcessor) {
     scriptProcessor.disconnect();
     scriptProcessor = null;
-  }
-  if (mediaRecorderInterval) {
-    clearInterval(mediaRecorderInterval);
-    mediaRecorderInterval = null;
   }
   mediaRecorder.stop();
   if (tabStream) {

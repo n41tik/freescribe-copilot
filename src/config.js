@@ -22,7 +22,6 @@ export const defaultConfig = {
 export function loadConfig() {
   return new Promise((resolve) => {
     chrome.storage.sync.get(["config"], function (result) {
-      console.info("configuration loaded!");
       resolve({ ...defaultConfig, ...result.config });
     });
   });
