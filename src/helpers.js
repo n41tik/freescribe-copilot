@@ -20,3 +20,17 @@ export function sanitizeInput(input) {
     return entities[char];
   });
 }
+
+export function generateBaseUrl(is_secure, host, port) {
+  let prefix = "http";
+
+  if (is_secure) {
+    prefix = "https";
+  }
+
+  if (isNaN(port) || port == 0) {
+    return `${prefix}://${host}`;
+  }
+
+  return `${prefix}://${host}:${port}`;
+}

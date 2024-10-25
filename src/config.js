@@ -1,9 +1,15 @@
 export const defaultConfig = {
   // Transcription
   TRANSCRIPTION_URL: "http://localhost:8000/whisperaudio",
-  TRANSCRIPTION_API_KEY: "your_api_key",
+  TRANSCRIPTION_HOST: "localhost",
+  TRANSCRIPTION_PORT: 8000,
+  TRANSCRIPTION_SECURE: 0,
+  TRANSCRIPTION_API_KEY: "",
   // LLM
   LLM_URL: "http://localhost:1337/v1/chat/completions",
+  LLM_HOST: "localhost",
+  LLM_PORT: 1337,
+  LLM_SECURE: 0,
   LLM_MODEL: "gemma-2-2b-it",
   // Prompt
   LLM_CONTEXT_BEFORE:
