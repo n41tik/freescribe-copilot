@@ -9,6 +9,9 @@ let audioChunks = [];
 let audioContext;
 let audioInputSelect = document.getElementById("audioInputSelect");
 let recordButton = document.getElementById("recordButton");
+let stopButton = document.getElementById("stopButton");
+let pauseButton = document.getElementById("pauseButton");
+let resumeButton = document.getElementById("resumeButton");
 let userInput = document.getElementById("userInput");
 let notesElement = document.getElementById("notes");
 let toggleConfig = document.getElementById("toggleConfig");
@@ -16,7 +19,9 @@ let generateNotesButton = document.getElementById("generateNotesButton");
 let scriptProcessor;
 let deviceCounter = 0;
 let tabStream;
+let silenceTimeout;
 let isRecording = false;
+let isPause = false;
 
 async function init() {
   await loadConfigData();
@@ -141,7 +146,7 @@ async function startRecording() {
                 mediaRecorder.stop();
 
                 // Start a new mediaRecorder after a short delay
-                setTimeout(() => {
+                silenceTimeout = setTimeout(() => {
                   mediaRecorder.start();
                   recordingStartTime = Date.now(); // Reset the recording start time
                   Logger.log("New recording started after silence");
@@ -154,6 +159,11 @@ async function startRecording() {
 
           mediaRecorder.start();
           audioInputSelect.disabled = true;
+          pauseButton.disabled = false;
+          isPause = false;
+          isRecording = true;
+          recordButton.style.display = "none";
+          stopButton.style.display = "inline";
         }
       );
     })
@@ -167,6 +177,10 @@ async function stopRecording() {
     scriptProcessor.disconnect();
     scriptProcessor = null;
   }
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+    silenceTimeout = null;
+  }
   mediaRecorder.stop();
   if (tabStream) {
     tabStream.getTracks().forEach((track) => track.stop());
@@ -175,6 +189,43 @@ async function stopRecording() {
     audioContext.close();
   }
   audioInputSelect.disabled = false;
+  pauseButton.disabled = true;
+  isPause = false;
+  isRecording = false;
+  stopButton.style.display = "none";
+  recordButton.style.display = "inline";
+  resumeButton.style.display = "none";
+  pauseButton.style.display = "inline";
+}
+
+function pauseRecording() {
+  if (!isRecording) {
+    Logger.error("Recording is not in progress");
+    alert("Recording is not in progress");
+    return;
+  }
+
+  isPause = true;
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+    silenceTimeout = null;
+  }
+  mediaRecorder.stop();
+  pauseButton.style.display = "none";
+  resumeButton.style.display = "inline";
+}
+
+function resumeRecording() {
+  if (!isRecording) {
+    Logger.error("Recording is not in progress");
+    alert("Recording is not in progress");
+    return;
+  }
+
+  isPause = false;
+  mediaRecorder.start();
+  resumeButton.style.display = "none";
+  pauseButton.style.display = "inline";
 }
 
 async function convertAudioToText(audioBlob) {
@@ -266,21 +317,13 @@ toggleConfig.addEventListener("click", function (event) {
   }
 });
 
-recordButton.addEventListener("click", async () => {
-  isRecording = !isRecording;
+recordButton.addEventListener("click", startRecording);
 
-  if (isRecording) {
-    recordButton.textContent = "Stop";
-    recordButton.classList.remove("btn-success");
-    recordButton.classList.add("btn-danger");
-    startRecording();
-  } else {
-    recordButton.textContent = "Record";
-    recordButton.classList.remove("btn-danger");
-    recordButton.classList.add("btn-success");
-    stopRecording();
-  }
-});
+stopButton.addEventListener("click", stopRecording);
+
+pauseButton.addEventListener("click", pauseRecording);
+
+resumeButton.addEventListener("click", resumeRecording);
 
 generateNotesButton.addEventListener("click", () => {
   const transcribedText = userInput.value;
