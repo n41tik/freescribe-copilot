@@ -10,6 +10,8 @@ let audioContext;
 let audioInputSelect = document.getElementById("audioInputSelect");
 let recordButton = document.getElementById("recordButton");
 let stopButton = document.getElementById("stopButton");
+let pauseButton = document.getElementById("pauseButton");
+let resumeButton = document.getElementById("resumeButton");
 let userInput = document.getElementById("userInput");
 let notesElement = document.getElementById("notes");
 let toggleConfig = document.getElementById("toggleConfig");
@@ -17,6 +19,9 @@ let generateNotesButton = document.getElementById("generateNotesButton");
 let scriptProcessor;
 let deviceCounter = 0;
 let tabStream;
+let silenceTimeout;
+let isRecording = false;
+let isPause = false;
 
 async function init() {
   await loadConfigData();
@@ -25,15 +30,6 @@ async function init() {
 async function loadConfigData() {
   config = await loadConfig();
 }
-
-// Toggle configuration visibility
-toggleConfig.addEventListener("click", function (event) {
-  if (chrome.runtime.openOptionsPage) {
-    chrome.runtime.openOptionsPage();
-  } else {
-    window.open(chrome.runtime.getURL("options.html"));
-  }
-});
 
 // Use the standard Web Audio API to enumerate devices
 navigator.mediaDevices
@@ -64,7 +60,7 @@ navigator.mediaDevices
     Logger.error("Error enumerating devices:", err);
   });
 
-recordButton.addEventListener("click", async () => {
+async function startRecording() {
   await loadConfigData();
 
   let constraints = { audio: true };
@@ -150,7 +146,7 @@ recordButton.addEventListener("click", async () => {
                 mediaRecorder.stop();
 
                 // Start a new mediaRecorder after a short delay
-                setTimeout(() => {
+                silenceTimeout = setTimeout(() => {
                   mediaRecorder.start();
                   recordingStartTime = Date.now(); // Reset the recording start time
                   Logger.log("New recording started after silence");
@@ -162,22 +158,28 @@ recordButton.addEventListener("click", async () => {
           }
 
           mediaRecorder.start();
-
-          recordButton.disabled = true;
-          stopButton.disabled = false;
           audioInputSelect.disabled = true;
+          pauseButton.disabled = false;
+          isPause = false;
+          isRecording = true;
+          recordButton.style.display = "none";
+          stopButton.style.display = "inline";
         }
       );
     })
     .catch((err) => {
       Logger.error("Error accessing the microphone or tab audio:", err);
     });
-});
+}
 
-stopButton.addEventListener("click", () => {
+async function stopRecording() {
   if (scriptProcessor) {
     scriptProcessor.disconnect();
     scriptProcessor = null;
+  }
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+    silenceTimeout = null;
   }
   mediaRecorder.stop();
   if (tabStream) {
@@ -186,10 +188,45 @@ stopButton.addEventListener("click", () => {
   if (audioContext) {
     audioContext.close();
   }
-  recordButton.disabled = false;
-  stopButton.disabled = true;
   audioInputSelect.disabled = false;
-});
+  pauseButton.disabled = true;
+  isPause = false;
+  isRecording = false;
+  stopButton.style.display = "none";
+  recordButton.style.display = "inline";
+  resumeButton.style.display = "none";
+  pauseButton.style.display = "inline";
+}
+
+function pauseRecording() {
+  if (!isRecording) {
+    Logger.error("Recording is not in progress");
+    alert("Recording is not in progress");
+    return;
+  }
+
+  isPause = true;
+  if (silenceTimeout) {
+    clearTimeout(silenceTimeout);
+    silenceTimeout = null;
+  }
+  mediaRecorder.stop();
+  pauseButton.style.display = "none";
+  resumeButton.style.display = "inline";
+}
+
+function resumeRecording() {
+  if (!isRecording) {
+    Logger.error("Recording is not in progress");
+    alert("Recording is not in progress");
+    return;
+  }
+
+  isPause = false;
+  mediaRecorder.start();
+  resumeButton.style.display = "none";
+  pauseButton.style.display = "inline";
+}
 
 async function convertAudioToText(audioBlob) {
   Logger.log("Sending audio to server");
@@ -225,16 +262,6 @@ function updateGUI(text) {
   userInput.value += text;
   userInput.scrollTop = userInput.scrollHeight;
 }
-
-generateNotesButton.addEventListener("click", () => {
-  const transcribedText = userInput.value;
-  if (transcribedText.trim() === "") {
-    alert("Please record some audio first.");
-    return;
-  }
-
-  generateNotes(transcribedText);
-});
 
 // Generate notes
 async function generateNotes(text) {
@@ -280,5 +307,32 @@ async function generateNotes(text) {
     notesElement.textContent = "Error generating notes. Please try again.";
   }
 }
+
+// Toggle configuration visibility
+toggleConfig.addEventListener("click", function (event) {
+  if (chrome.runtime.openOptionsPage) {
+    chrome.runtime.openOptionsPage();
+  } else {
+    window.open(chrome.runtime.getURL("options.html"));
+  }
+});
+
+recordButton.addEventListener("click", startRecording);
+
+stopButton.addEventListener("click", stopRecording);
+
+pauseButton.addEventListener("click", pauseRecording);
+
+resumeButton.addEventListener("click", resumeRecording);
+
+generateNotesButton.addEventListener("click", () => {
+  const transcribedText = userInput.value;
+  if (transcribedText.trim() === "") {
+    alert("Please record some audio first.");
+    return;
+  }
+
+  generateNotes(transcribedText);
+});
 
 init();

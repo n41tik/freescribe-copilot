@@ -35,3 +35,4 @@ node_modules/
 
 # IDE config files
 .idea
+.aider*

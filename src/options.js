@@ -1,14 +1,24 @@
 import { loadConfig, saveConfig } from "./config.js";
-import { isValidUrl } from "./helpers.js";
+import { isValidUrl, generateBaseUrl } from "./helpers.js";
 import { Logger } from "./logger.js";
 
 let config;
 
 function showConfig() {
-  document.getElementById("transcriptionUrl").value = config.TRANSCRIPTION_URL;
+  // Transcription settings
+  document.getElementById("transcriptionHost").value =
+    config.TRANSCRIPTION_HOST;
+  document.getElementById("transcriptionPort").value =
+    config.TRANSCRIPTION_PORT;
+  document.getElementById("transcriptionSecure").value =
+    config.TRANSCRIPTION_SECURE;
   document.getElementById("transcriptionApiKey").value =
     config.TRANSCRIPTION_API_KEY;
-  document.getElementById("llmUrl").value = config.LLM_URL;
+
+  // LLM settings
+  document.getElementById("llmHost").value = config.LLM_HOST;
+  document.getElementById("llmPort").value = config.LLM_PORT;
+  document.getElementById("llmSecure").value = config.LLM_SECURE;
   document.getElementById("llmModel").value = config.LLM_MODEL;
   document.getElementById("llmContextBefore").value = config.LLM_CONTEXT_BEFORE;
   document.getElementById("llmContextAfter").value = config.LLM_CONTEXT_AFTER;
@@ -22,11 +32,35 @@ function showConfig() {
 }
 
 function updateConfig() {
-  config.TRANSCRIPTION_URL = document.getElementById("transcriptionUrl").value;
+  // Transcription settings
+  config.TRANSCRIPTION_HOST =
+    document.getElementById("transcriptionHost").value;
+  config.TRANSCRIPTION_PORT = parseInt(
+    document.getElementById("transcriptionPort").value
+  );
+  config.TRANSCRIPTION_SECURE = parseInt(
+    document.getElementById("transcriptionSecure").value
+  );
   config.TRANSCRIPTION_API_KEY = document.getElementById(
     "transcriptionApiKey"
   ).value;
-  config.LLM_URL = document.getElementById("llmUrl").value;
+
+  config.TRANSCRIPTION_URL =
+    generateBaseUrl(
+      config.TRANSCRIPTION_SECURE,
+      config.TRANSCRIPTION_HOST,
+      config.TRANSCRIPTION_PORT
+    ) + "/whisperaudio";
+
+  // LLM settings
+  config.LLM_HOST = document.getElementById("llmHost").value;
+  config.LLM_PORT = parseInt(document.getElementById("llmPort").value);
+  config.LLM_SECURE = parseInt(document.getElementById("llmSecure").value);
+
+  config.LLM_URL =
+    generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT) +
+    "/v1/chat/completions";
+
   config.LLM_MODEL = document.getElementById("llmModel").value;
   config.LLM_CONTEXT_BEFORE = document.getElementById("llmContextBefore").value;
   config.LLM_CONTEXT_AFTER = document.getElementById("llmContextAfter").value;
@@ -72,16 +106,14 @@ document.addEventListener("DOMContentLoaded", async function (event) {
   $("#configForm").validate({
     errorClass: "text-danger small",
     rules: {
-      transcriptionUrl: {
+      transcriptionHost: {
         required: true,
-        customUrl: true,
       },
       transcriptionApiKey: {
-        required: true,
+        required: false,
       },
-      llmUrl: {
+      llmHost: {
         required: true,
-        customUrl: true,
       },
       llmModel: {
         required: true,
@@ -107,7 +139,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
       },
     },
     messages: {
-      transcriptionUrl: {
+      transcriptionHost: {
         required: "Please enter the Transcription Server URL.",
         customUrl:
           "Please enter a valid URL format for the Transcription Server.",
@@ -115,7 +147,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
       transcriptionApiKey: {
         required: "Please enter the Transcription Server API Key.",
       },
-      llmUrl: {
+      llmHost: {
         required: "Please enter the LLM URL.",
         customUrl: "Please enter a valid URL format for the LLM.",
       },

@@ -26,15 +26,40 @@
               <i class="fas fa-question-circle"></i>
             </a>
           </h3>
-          <div class="config-item">
-            <label for="transcriptionUrl">Transcription Server URL:</label>
-            <input
-              type="text"
-              id="transcriptionUrl"
-              name="transcriptionUrl"
-              class="form-control"
-              required
-            />
+          <div class="config-item d-flex align-items-center">
+            <div class="me-2">
+              <label for="transcriptionHost">Host:</label>
+              <input
+                type="text"
+                id="transcriptionHost"
+                name="transcriptionHost"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="me-2">
+              <label for="transcriptionPort">Port:</label>
+              <input
+                type="number"
+                id="transcriptionPort"
+                name="transcriptionPort"
+                class="form-control"
+                min="0"
+                max="65535"
+                required
+              />
+            </div>
+            <div class="me-2">
+              <label for="transcriptionSecure">Is Secure Host?</label>
+              <select
+                id="transcriptionSecure"
+                name="transcriptionSecure"
+                class="form-select"
+              >
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+              </select>
+            </div>
           </div>
           <div class="config-item">
             <label for="transcriptionApiKey"
@@ -45,7 +70,6 @@
               id="transcriptionApiKey"
               name="transcriptionApiKey"
               class="form-control"
-              required
             />
           </div>
 
@@ -60,15 +84,36 @@
               <i class="fas fa-question-circle"></i>
             </a>
           </h3>
-          <div class="config-item">
-            <label for="llmUrl">LLM URL:</label>
-            <input
-              type="text"
-              id="llmUrl"
-              name="llmUrl"
-              class="form-control"
-              required
-            />
+          <div class="config-item d-flex align-items-center">
+            <div class="me-2">
+              <label for="llmHost">Host:</label>
+              <input
+                type="text"
+                id="llmHost"
+                name="llmHost"
+                class="form-control"
+                required
+              />
+            </div>
+            <div class="me-2">
+              <label for="llmPort">Port:</label>
+              <input
+                type="number"
+                id="llmPort"
+                name="llmPort"
+                class="form-control"
+                min="0"
+                max="65535"
+                required
+              />
+            </div>
+            <div class="me-2">
+              <label for="llmSecure">Is Secure Host?</label>
+              <select id="llmSecure" name="llmSecure" class="form-select">
+                <option value="1">Yes</option>
+                <option value="0">No</option>
+              </select>
+            </div>
           </div>
           <div class="config-item">
             <label for="llmModel">LLM Model:</label>

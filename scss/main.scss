@@ -72,14 +72,6 @@ button {
   }
 }
 
-#recordButton {
-  @extend .btn-success;
-}
-
-#stopButton {
-  @extend .btn-danger;
-}
-
 #generateNotesButton {
   @extend .btn-info;
 }
