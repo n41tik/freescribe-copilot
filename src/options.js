@@ -26,7 +26,8 @@ function showConfig() {
   document.getElementById("realtimeRecordingLength").value =
     config.REALTIME_RECODING_LENGTH;
   document.getElementById("silenceThreshold").value = config.SILENCE_THRESHOLD;
-  document.getElementById("sliderOutput").innerText = config.SILENCE_THRESHOLD;
+  document.getElementById("sliderOutput").textContent =
+    config.SILENCE_THRESHOLD;
   document.getElementById("minSilenceDuration").value =
     config.MIN_SILENCE_DURATION;
   document.getElementById("debugMode").checked = config.DEBUG_MODE;
@@ -109,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
   document
     .getElementById("silenceThreshold")
     .addEventListener("change", function () {
-      document.getElementById("sliderOutput").innerText = this.value;
+      document.getElementById("sliderOutput").textContent = this.value;
     });
 
   $("#configForm").validate({
