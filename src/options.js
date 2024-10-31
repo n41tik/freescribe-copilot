@@ -26,6 +26,7 @@ function showConfig() {
   document.getElementById("realtimeRecordingLength").value =
     config.REALTIME_RECODING_LENGTH;
   document.getElementById("silenceThreshold").value = config.SILENCE_THRESHOLD;
+  document.getElementById("sliderOutput").innerText = config.SILENCE_THRESHOLD;
   document.getElementById("minSilenceDuration").value =
     config.MIN_SILENCE_DURATION;
   document.getElementById("debugMode").checked = config.DEBUG_MODE;
@@ -91,6 +92,8 @@ function closeTab() {
 }
 
 document.addEventListener("DOMContentLoaded", async function (event) {
+  $('[data-toggle="tooltip"]').tooltip(); // Initialize tooltips
+
   config = await loadConfig();
   showConfig();
 
@@ -102,6 +105,12 @@ document.addEventListener("DOMContentLoaded", async function (event) {
     },
     "Please enter a valid URL."
   );
+
+  document
+    .getElementById("silenceThreshold")
+    .addEventListener("change", function () {
+      document.getElementById("sliderOutput").innerText = this.value;
+    });
 
   $("#configForm").validate({
     errorClass: "text-danger small",
@@ -127,15 +136,17 @@ document.addEventListener("DOMContentLoaded", async function (event) {
       realtimeRecordingLength: {
         required: true,
         min: 5,
-        max: 10,
+        max: 30,
       },
       silenceThreshold: {
         required: true,
-        min: 0,
+        min: 0.01,
+        max: 0.1,
       },
       minSilenceDuration: {
         required: true,
         min: 500,
+        max: 2000,
       },
     },
     messages: {
