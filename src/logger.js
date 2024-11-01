@@ -1,36 +1,28 @@
-import { getConfig } from "./config.js";
-
 export class Logger {
-  constructor() {}
+  constructor(config) {
+    this.config = config;
+  }
 
-  static log(...messages) {
-    let logging = getConfig("DEBUG_MODE");
-
-    if (logging) {
+  log(...messages) {
+    if (this.config.DEBUG_MODE) {
       console.log(messages);
     }
   }
 
-  static info(...messages) {
-    let logging = getConfig("DEBUG_MODE");
-
-    if (logging) {
+  info(...messages) {
+    if (this.config.DEBUG_MODE) {
       console.log(messages);
     }
   }
 
-  static debug(...messages) {
-    let logging = getConfig("DEBUG_MODE");
-
-    if (logging) {
+  debug(...messages) {
+    if (this.config.DEBUG_MODE) {
       console.debug(messages);
     }
   }
 
-  static error(...messages) {
-    let logging = getConfig("DEBUG_MODE");
-
-    if (logging) {
+  error(...messages) {
+    if (this.config.DEBUG_MODE) {
       console.error(messages);
     }
   }

@@ -1,6 +1,5 @@
 import { loadConfig, saveConfig } from "./config.js";
 import { isValidUrl, generateBaseUrl } from "./helpers.js";
-import { Logger } from "./logger.js";
 
 let config;
 
@@ -80,7 +79,6 @@ function updateConfig() {
 
   // Save configuration
   saveConfig(config).then(function () {
-    Logger.info("Configuration saved!");
     alert("Configuration saved!");
     closeTab(); // Close the tab after saving
   });

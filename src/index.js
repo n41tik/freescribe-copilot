@@ -23,9 +23,13 @@ let tabStream;
 let micStream;
 let silenceTimeout;
 let isRecording = false;
+let isPause = false;
+let apiCounter = 0;
+let logger;
 
 async function init() {
   await loadConfigData();
+  logger = new Logger(config);
   await getAudioDeviceList();
 }
 
@@ -62,7 +66,7 @@ async function getAudioDeviceList() {
       startMicStream();
     })
     .catch((err) => {
-      Logger.error("Error enumerating devices:", err);
+      logger.error("Error enumerating devices:", err);
     });
 }
 
@@ -113,25 +117,28 @@ async function startMicStream() {
       updateVolume();
     })
     .catch((err) => {
-      Logger.error("Error accessing the microphone or tab audio:", err);
+      logger.error("Error accessing the microphone or tab audio:", err);
     });
 }
 
 async function startRecording() {
   if (isRecording) {
-    Logger.info("Recording already in progress");
+    logger.info("Recording already in progress");
     return;
   }
   await loadConfigData();
 
   audioChunks = [];
   userInput.value = "";
+  notesElement.textContent = "";
+  notesElement.style.display = "none";
+  apiCounter = 0;
 
   chrome.tabCapture.capture(
     { audio: true, video: false },
     (capturedTabStream) => {
       if (chrome.runtime.lastError) {
-        Logger.error(chrome.runtime.lastError);
+        logger.error(chrome.runtime.lastError);
         return;
       }
 
@@ -168,7 +175,7 @@ async function startRecording() {
           const isAudioAvailable = await silenceDetector.isAudioAvailable(
             audioChunks
           );
-          Logger.log(
+          logger.log(
             isAudioAvailable ? "Recording has sound" : "Recording is silent"
           );
 
@@ -192,6 +199,9 @@ async function startRecording() {
         let minRecordingLength = config.REALTIME_RECODING_LENGTH * 1000;
 
         scriptProcessor.onaudioprocess = function (event) {
+          if (isPause) {
+            return false;
+          }
           const currentTime = Date.now();
           const recordingDuration = currentTime - recordingStartTime;
 
@@ -202,18 +212,19 @@ async function startRecording() {
           const inputData = event.inputBuffer.getChannelData(0);
 
           if (silenceDetector.detect(inputData, currentTime)) {
-            Logger.log("silence detected");
+            recordingStartTime = Date.now(); // Reset the recording start time
             // Stop the current mediaRecorder
             mediaRecorder.stop();
 
             // Start a new mediaRecorder after a short delay
             silenceTimeout = setTimeout(() => {
-              mediaRecorder.start();
-              recordingStartTime = Date.now(); // Reset the recording start time
-              Logger.log("New recording started after silence");
+              if (mediaRecorder.state != "recording" && !isPause) {
+                mediaRecorder.start();
+              }
+              logger.log("New recording started after silence");
             }, 50); // 50ms delay before starting new recording
           } else {
-            Logger.log("voice detected");
+            logger.log("voice detected");
           }
         };
       }
@@ -230,7 +241,7 @@ async function startRecording() {
 
 async function stopRecording() {
   if (!isRecording) {
-    Logger.info("No recording in progress");
+    logger.info("No recording in progress");
     return;
   }
 
@@ -260,10 +271,12 @@ async function stopRecording() {
 
 function pauseRecording() {
   if (!isRecording) {
-    Logger.error("Recording is not in progress");
+    logger.error("Recording is not in progress");
     alert("Recording is not in progress");
     return;
   }
+
+  isPause = true;
 
   if (silenceTimeout) {
     clearTimeout(silenceTimeout);
@@ -276,10 +289,12 @@ function pauseRecording() {
 
 function resumeRecording() {
   if (!isRecording) {
-    Logger.error("Recording is not in progress");
+    logger.error("Recording is not in progress");
     alert("Recording is not in progress");
     return;
   }
+
+  isPause = false;
 
   mediaRecorder.start();
   resumeButton.style.display = "none";
@@ -287,13 +302,18 @@ function resumeRecording() {
 }
 
 async function convertAudioToText(audioBlob) {
-  Logger.log("Sending audio to server");
+  logger.log("Sending audio to server");
   const formData = new FormData();
   formData.append("audio", audioBlob, "audio.wav");
 
   const headers = {
     Authorization: "Bearer " + config.TRANSCRIPTION_API_KEY,
   };
+
+  apiCounter++;
+
+  // Show loader
+  showLoader();
 
   try {
     const response = await fetch(config.TRANSCRIPTION_URL, {
@@ -309,11 +329,26 @@ async function convertAudioToText(audioBlob) {
     const result = await response.json();
     return result;
   } catch (error) {
-    Logger.error("Audio to text conversion error:", error);
+    logger.error("Audio to text conversion error:", error);
     throw new Error(`Failed to convert audio to text: ${error.message}`, {
       cause: error,
     });
+  } finally {
+    apiCounter--;
+
+    // Hide loader
+    if (apiCounter == 0) {
+      hideLoader();
+    }
   }
+}
+
+function showLoader() {
+  document.getElementById("s2t-loader").style.display = "block";
+}
+
+function hideLoader() {
+  document.getElementById("s2t-loader").style.display = "none";
 }
 
 function updateGUI(text) {
@@ -323,7 +358,7 @@ function updateGUI(text) {
 
 // Generate notes
 async function generateNotes(text) {
-  Logger.log("Generating notes");
+  logger.log("Generating notes");
 
   const sanitizedText = sanitizeInput(text);
 
@@ -361,7 +396,7 @@ async function generateNotes(text) {
     notesElement.textContent = notes;
     notesElement.style.display = "block";
   } catch (error) {
-    Logger.error("Error generating notes:", error);
+    logger.error("Error generating notes:", error);
     notesElement.textContent = "Error generating notes. Please try again.";
   }
 }

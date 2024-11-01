@@ -47,12 +47,20 @@
           </button>
         </div>
 
-        <textarea
-          id="userInput"
-          rows="5"
-          class="mb-3"
-          placeholder=""
-        ></textarea>
+        <div class="textarea-container mb-3">
+          <textarea
+            id="userInput"
+            rows="5"
+            class="form-control"
+            placeholder=""
+          ></textarea>
+          <div id="s2t-loader" class="text-center loader">
+            <div class="spinner-border" role="status">
+              <span class="sr-only">Loading...</span>
+            </div>
+          </div>
+        </div>
+
         <button id="generateNotesButton" class="mb-3">
           <i class="fas fa-file-alt"></i> Generate Notes
         </button>
