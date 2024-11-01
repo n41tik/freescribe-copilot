@@ -212,7 +212,6 @@ async function startRecording() {
           const inputData = event.inputBuffer.getChannelData(0);
 
           if (silenceDetector.detect(inputData, currentTime)) {
-            recordingStartTime = Date.now(); // Reset the recording start time
             // Stop the current mediaRecorder
             mediaRecorder.stop();
 
@@ -220,6 +219,7 @@ async function startRecording() {
             silenceTimeout = setTimeout(() => {
               if (mediaRecorder.state != "recording" && !isPause) {
                 mediaRecorder.start();
+                recordingStartTime = Date.now(); // Reset the recording start time
               }
               logger.log("New recording started after silence");
             }, 50); // 50ms delay before starting new recording
