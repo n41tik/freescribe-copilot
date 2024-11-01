@@ -43,6 +43,19 @@ button {
   }
 }
 
+.loader {
+  display: none; /* Hidden by default */
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+}
+
+.textarea-container {
+  position: relative; /* Position relative to allow absolute positioning of loader */
+}
+
 // Popup-specific styles
 .popup-container {
   width: 350px;
