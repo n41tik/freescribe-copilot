@@ -35,6 +35,14 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [{ from: "public", to: "" }],
     }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "node_modules/bootstrap/dist/js/bootstrap.bundle.min.js",
+          to: "",
+        },
+      ],
+    }),
     new MiniCssExtractPlugin({
       filename: "[name].css",
     }),
