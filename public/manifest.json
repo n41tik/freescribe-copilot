@@ -8,7 +8,8 @@
     "tabCapture",
     "storage",
     "sidePanel",
-    "contextMenus"
+    "contextMenus",
+    "tabs"
   ],
   "icons": {
     "16": "icons/icon16.png",

@@ -16,6 +16,7 @@ let userInput = document.getElementById("userInput");
 let notesElement = document.getElementById("notes");
 let toggleConfig = document.getElementById("toggleConfig");
 let generateNotesButton = document.getElementById("generateNotesButton");
+let copyNotesButton = document.getElementById("copyNotesButton");
 let volumeLevel = document.getElementById("volumeLevel");
 let scriptProcessor;
 let deviceCounter = 0;
@@ -26,6 +27,7 @@ let isRecording = false;
 let isPause = false;
 let apiCounter = 0;
 let logger;
+let abortController;
 
 async function init() {
   await loadConfigData();
@@ -121,6 +123,22 @@ async function startMicStream() {
     });
 }
 
+async function getCurrentTabPermission(callback) {
+  chrome.permissions.request(
+    {
+      permissions: ["tabs", "tabCapture"],
+    },
+    (granted) => {
+      if (granted) {
+        console.log("permission granted");
+        callback();
+      } else {
+        console.log("Permission not granted");
+      }
+    }
+  );
+}
+
 async function startRecording() {
   if (isRecording) {
     logger.info("Recording already in progress");
@@ -132,6 +150,7 @@ async function startRecording() {
   userInput.value = "";
   notesElement.textContent = "";
   notesElement.style.display = "none";
+  copyNotesButton.style.display = "none";
   apiCounter = 0;
 
   chrome.tabCapture.capture(
@@ -185,6 +204,8 @@ async function startRecording() {
             convertAudioToText(audioBlob).then((result) => {
               updateGUI(result.text);
             });
+          } else if (!isRecording) {
+            generateNotes();
           }
         }
       };
@@ -263,10 +284,16 @@ async function stopRecording() {
   audioInputSelect.disabled = false;
   pauseButton.disabled = true;
   isRecording = false;
+
   stopButton.style.display = "none";
   recordButton.style.display = "inline";
   resumeButton.style.display = "none";
   pauseButton.style.display = "inline";
+
+  if (isPause) {
+    generateNotes();
+    isPause = false;
+  }
 }
 
 function pauseRecording() {
@@ -354,15 +381,35 @@ function hideLoader() {
 function updateGUI(text) {
   userInput.value += text;
   userInput.scrollTop = userInput.scrollHeight;
+
+  // Hide loader
+  if (apiCounter == 0 && !isRecording) {
+    generateNotes();
+  }
 }
 
 // Generate notes
-async function generateNotes(text) {
+async function generateNotes() {
   logger.log("Generating notes");
 
-  const sanitizedText = sanitizeInput(text);
+  const text = userInput.value;
+  console.log(text);
+  if (text.trim() === "") {
+    logger.debug("Please record some audio first.");
+    return;
+  }
 
+  const sanitizedText = sanitizeInput(text);
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
+
+  // Abort the previous request if it's still in progress
+  // if (abortController) {
+  //   abortController.abort();
+  // }
+
+  // // Create a new AbortController for the new request
+  // abortController = new AbortController();
+  // const signal = abortController.signal;
 
   try {
     // Show loading indicator
@@ -385,6 +432,7 @@ async function generateNotes(text) {
         temperature: 0.7,
         max_tokens: 800,
       }),
+      // signal: signal, // Pass the signal to the fetch request
     });
 
     if (!response.ok) {
@@ -395,9 +443,15 @@ async function generateNotes(text) {
     const notes = result.choices[0].message.content;
     notesElement.textContent = notes;
     notesElement.style.display = "block";
+    copyNotesButton.style.display = "block";
+    // copyNotesToClipboard()
   } catch (error) {
-    logger.error("Error generating notes:", error);
-    notesElement.textContent = "Error generating notes. Please try again.";
+    if (error.name === "AbortError") {
+      logger.log("Previous generateNotes request was aborted.");
+    } else {
+      logger.error("Error generating notes:", error);
+      notesElement.textContent = "Error generating notes. Please try again.";
+    }
   }
 }
 
@@ -410,7 +464,9 @@ toggleConfig.addEventListener("click", function (event) {
   }
 });
 
-recordButton.addEventListener("click", startRecording);
+recordButton.addEventListener("click", function () {
+  getCurrentTabPermission(startRecording);
+});
 
 stopButton.addEventListener("click", stopRecording);
 
@@ -421,13 +477,7 @@ resumeButton.addEventListener("click", resumeRecording);
 audioInputSelect.addEventListener("change", startMicStream);
 
 generateNotesButton.addEventListener("click", () => {
-  const transcribedText = userInput.value;
-  if (transcribedText.trim() === "") {
-    alert("Please record some audio first.");
-    return;
-  }
-
-  generateNotes(transcribedText);
+  generateNotes();
 });
 
 // Listen for messages from the background script
@@ -437,9 +487,31 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (isRecording) {
       stopRecording();
     } else {
-      startRecording();
+      getCurrentTabPermission(startRecording);
     }
   }
 });
+
+// Add this function to handle copying notes to clipboard
+function copyNotesToClipboard() {
+  const notes = notesElement.textContent; // Get the text content of the notes
+  if (notes.trim() === "") {
+    alert("No notes to copy.");
+    return;
+  }
+
+  navigator.clipboard
+    .writeText(notes)
+    .then(() => {
+      alert("Notes copied to clipboard!");
+    })
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
+      alert("Failed to copy notes. Please try again.");
+    });
+}
+
+// Add event listener for the copy button
+copyNotesButton.addEventListener("click", copyNotesToClipboard);
 
 init();
