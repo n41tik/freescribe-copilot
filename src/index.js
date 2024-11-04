@@ -27,7 +27,6 @@ let isRecording = false;
 let isPause = false;
 let apiCounter = 0;
 let logger;
-let abortController;
 
 async function init() {
   await loadConfigData();
@@ -121,22 +120,6 @@ async function startMicStream() {
     .catch((err) => {
       logger.error("Error accessing the microphone or tab audio:", err);
     });
-}
-
-async function getCurrentTabPermission(callback) {
-  chrome.permissions.request(
-    {
-      permissions: ["tabs", "tabCapture"],
-    },
-    (granted) => {
-      if (granted) {
-        console.log("permission granted");
-        callback();
-      } else {
-        console.log("Permission not granted");
-      }
-    }
-  );
 }
 
 async function startRecording() {
@@ -402,15 +385,6 @@ async function generateNotes() {
   const sanitizedText = sanitizeInput(text);
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
 
-  // Abort the previous request if it's still in progress
-  // if (abortController) {
-  //   abortController.abort();
-  // }
-
-  // // Create a new AbortController for the new request
-  // abortController = new AbortController();
-  // const signal = abortController.signal;
-
   try {
     // Show loading indicator
     notesElement.textContent = "Generating notes...";
@@ -432,7 +406,6 @@ async function generateNotes() {
         temperature: 0.7,
         max_tokens: 800,
       }),
-      // signal: signal, // Pass the signal to the fetch request
     });
 
     if (!response.ok) {
@@ -464,9 +437,7 @@ toggleConfig.addEventListener("click", function (event) {
   }
 });
 
-recordButton.addEventListener("click", function () {
-  getCurrentTabPermission(startRecording);
-});
+recordButton.addEventListener("click", startRecording);
 
 stopButton.addEventListener("click", stopRecording);
 
@@ -487,7 +458,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (isRecording) {
       stopRecording();
     } else {
-      getCurrentTabPermission(startRecording);
+      startRecording();
     }
   }
 });
