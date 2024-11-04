@@ -1,5 +1,5 @@
 import { loadConfig } from "./config.js";
-import { sanitizeInput } from "./helpers.js";
+import { sanitizeInput, showSnackbar } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
 
@@ -282,7 +282,7 @@ async function stopRecording() {
 function pauseRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    alert("Recording is not in progress");
+    showSnackbar("Recording is not in progress");
     return;
   }
 
@@ -300,7 +300,7 @@ function pauseRecording() {
 function resumeRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    alert("Recording is not in progress");
+    showSnackbar("Recording is not in progress");
     return;
   }
 
@@ -428,6 +428,25 @@ async function generateNotes() {
   }
 }
 
+// Add this function to handle copying notes to clipboard
+function copyNotesToClipboard() {
+  const notes = notesElement.textContent; // Get the text content of the notes
+  if (notes.trim() === "") {
+    showSnackbar("No notes to copy.");
+    return;
+  }
+
+  navigator.clipboard
+    .writeText(notes)
+    .then(() => {
+      showSnackbar("Notes copied to clipboard!");
+    })
+    .catch((err) => {
+      console.error("Failed to copy: ", err);
+      showSnackbar("Failed to copy notes. Please try again.");
+    });
+}
+
 // Toggle configuration visibility
 toggleConfig.addEventListener("click", function (event) {
   if (chrome.runtime.openOptionsPage) {
@@ -447,9 +466,9 @@ resumeButton.addEventListener("click", resumeRecording);
 
 audioInputSelect.addEventListener("change", startMicStream);
 
-generateNotesButton.addEventListener("click", () => {
-  generateNotes();
-});
+generateNotesButton.addEventListener("click", generateNotes);
+
+copyNotesButton.addEventListener("click", copyNotesToClipboard);
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -462,27 +481,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   }
 });
-
-// Add this function to handle copying notes to clipboard
-function copyNotesToClipboard() {
-  const notes = notesElement.textContent; // Get the text content of the notes
-  if (notes.trim() === "") {
-    alert("No notes to copy.");
-    return;
-  }
-
-  navigator.clipboard
-    .writeText(notes)
-    .then(() => {
-      alert("Notes copied to clipboard!");
-    })
-    .catch((err) => {
-      console.error("Failed to copy: ", err);
-      alert("Failed to copy notes. Please try again.");
-    });
-}
-
-// Add event listener for the copy button
-copyNotesButton.addEventListener("click", copyNotesToClipboard);
 
 init();
