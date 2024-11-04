@@ -36,8 +36,12 @@ export function generateBaseUrl(is_secure, host, port) {
 }
 
 export function showSnackbar(text) {
+  // removing existing snackbar
+  const existingSnackbars = document.querySelectorAll(".snackbar");
+  existingSnackbars.forEach((snackbar) => snackbar.remove());
+
   // Create a new div element
-  var snackbarDiv = document.createElement("div");
+  let snackbarDiv = document.createElement("div");
   snackbarDiv.textContent = text;
   snackbarDiv.className = "snackbar"; // You can add a class for styling
 
