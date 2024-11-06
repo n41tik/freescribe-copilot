@@ -241,3 +241,57 @@ h2 {
 #configureLink {
   @extend .btn-lg;
 }
+
+.hidden {
+  display: none !important;
+}
+
+#progressContainer {
+  margin: 20px 0; /* Add some margin for spacing */
+  width: 100%; /* Full width */
+}
+
+.progress-item {
+  margin-bottom: 10px; /* Space between progress items */
+  background-color: #f8f9fa; /* Light background for the item */
+  border-radius: 5px; /* Rounded corners */
+  padding: 10px; /* Padding around the item */
+}
+
+.progress-bar {
+  height: 20px; /* Height of the progress bar */
+  background-color: #007bff; /* Primary color for the progress */
+  border-radius: 5px; /* Rounded corners for the progress bar */
+  transition: width 0.4s ease; /* Smooth transition for width changes */
+  width: 0; /* Initial width */
+}
+
+/* Loading Status Styles */
+#loadingStatus {
+  display: flex; /* Use flexbox for alignment */
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center items horizontally */
+  justify-content: center; /* Center items vertically */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.9
+  ); /* Slightly transparent white background */
+  border: 1px solid $border-color; /* Border color */
+  border-radius: 0.5rem; /* Rounded corners */
+  padding: 20px; /* Padding around the content */
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  position: fixed; /* Fixed position to overlay on the screen */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust for centering */
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+/* Loading Message Styles */
+#loadingMessage {
+  font-size: 1.2rem; /* Larger font size for visibility */
+  color: $primary-color; /* Use primary color for the text */
+  margin-bottom: 10px; /* Space between message and progress */
+}

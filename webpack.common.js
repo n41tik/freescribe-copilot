@@ -43,6 +43,30 @@ module.exports = {
         },
       ],
     }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "node_modules/@huggingface/transformers/dist/transformers.min.js",
+          to: "",
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "node_modules/@huggingface/transformers/dist/ort-wasm-simd-threaded.jsep.wasm",
+          to: "",
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "src/worker.js",
+          to: "",
+        },
+      ],
+    }),
     new MiniCssExtractPlugin({
       filename: "[name].css",
     }),
@@ -54,5 +78,14 @@ module.exports = {
     splitChunks: {
       chunks: "all",
     },
+  },
+  resolve: {
+    alias: {
+      "@huggingface/transformers": path.resolve(
+        __dirname,
+        "node_modules/@huggingface/transformers"
+      ),
+    },
+    extensions: [".js", ".json"],
   },
 };

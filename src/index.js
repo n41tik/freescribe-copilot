@@ -1,5 +1,5 @@
 import { loadConfig } from "./config.js";
-import { sanitizeInput } from "./helpers.js";
+import { sanitizeInput, formatBytes } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
 
@@ -26,11 +26,93 @@ let isRecording = false;
 let isPause = false;
 let apiCounter = 0;
 let logger;
+let transcriptionWorker;
+const loadingStatus = document.getElementById("loadingStatus");
+const loadingMessage = document.getElementById("loadingMessage");
+const progressContainer = document.getElementById("progressContainer");
 
 async function init() {
   await loadConfigData();
   logger = new Logger(config);
+
+  transcriptionWorker = new Worker("./worker.js", { type: "module" });
+  transcriptionWorker.addEventListener("message", handleWorkerMessage);
+  transcriptionWorker.postMessage({
+    type: "load",
+    // data: "onnx-community/whisper-tiny.en",
+    data: "onnx-community/whisper-base",
+  });
+
   await getAudioDeviceList();
+}
+
+function handleWorkerMessage(event) {
+  let data = event.data;
+  let status = data.status;
+  switch (data.status) {
+    case "loading":
+      loadingMessage.textContent = data.message;
+      setStatus(status);
+      console.log(status);
+      break;
+    case "initiate":
+      // updateProgress(data.file, 0, data.total);
+      break;
+    case "progress":
+      updateProgress(data.file, data.progress, data.total);
+      break;
+    case "done":
+      removeProgress(data.file);
+      break;
+    case "ready":
+      setStatus(status);
+      console.log(status);
+      break;
+    case "start":
+      console.log(data);
+      break;
+    case "update":
+      // console.log(data);
+      break;
+    case "complete":
+      console.log(data);
+      if (config.REALTIME) {
+        userInput.value = "";
+      }
+      updateGUI(data.data.text);
+      break;
+  }
+}
+
+function setStatus(status) {
+  if (status === "loading") {
+    loadingStatus.classList.remove("hidden");
+    recordButton.disabled = true;
+    // appContent.classList.add("hidden");
+  } else if (status === "ready") {
+    loadingStatus.classList.add("hidden");
+    recordButton.disabled = false;
+    // appContent.classList.remove("hidden");
+  }
+}
+
+function updateProgress(file, progress, total) {
+  let progressItem = document.getElementById(file);
+  if (!progressItem) {
+    progressItem = document.createElement("div");
+    progressItem.id = file;
+    progressItem.className = "progress-item";
+    let totalSize = isNaN(total) ? "" : ` of ${formatBytes(total)}`;
+    progressItem.innerHTML = `<p>${file} ${totalSize}</p><div class="progress-bar"></div>`;
+    progressContainer.appendChild(progressItem);
+  }
+  const progressBar = progressItem.querySelector(".progress-bar");
+  progressBar.style.width = `${progress.toFixed(2)}%`;
+}
+
+function removeProgress(file) {
+  const progressItem = document.getElementById(file);
+  if (progressItem) progressContainer.removeChild(progressItem);
 }
 
 async function loadConfigData() {
@@ -180,11 +262,13 @@ async function startRecording() {
           );
 
           if (isAudioAvailable) {
-            let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            audioChunks = [];
-            convertAudioToText(audioBlob).then((result) => {
-              updateGUI(result.text);
-            });
+            // let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            transcribeAudio();
+            // audioChunks = [];
+            // transcribeAudio(audioBlob);
+            // convertAudioToText(audioBlob).then((result) => {
+            //   updateGUI(result.text);
+            // });
           }
         }
       };
@@ -237,6 +321,30 @@ async function startRecording() {
       stopButton.style.display = "inline";
     }
   );
+}
+
+// Function to transcribe the audio Blob
+async function transcribeAudio() {
+  let blob = new Blob(audioChunks, { type: "audio/wav" });
+
+  const audioContext = new AudioContext({
+    sampleRate: 16_000,
+  });
+
+  const fileReader = new FileReader();
+
+  fileReader.onloadend = async () => {
+    const arrayBuffer = fileReader.result;
+    const decoded = await audioContext.decodeAudioData(arrayBuffer);
+    let audio = decoded.getChannelData(0);
+
+    // Send the audio data to the transcriber
+    transcriptionWorker.postMessage({
+      type: "transcribe",
+      data: audio,
+    });
+  };
+  fileReader.readAsArrayBuffer(blob);
 }
 
 async function stopRecording() {
