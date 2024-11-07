@@ -27,7 +27,7 @@ let isRecording = false;
 let isPause = false;
 let apiCounter = 0;
 let logger;
-let transcriptionWorker;
+let worker;
 const loadingStatus = document.getElementById("loadingStatus");
 const loadingMessage = document.getElementById("loadingMessage");
 const progressContainer = document.getElementById("progressContainer");
@@ -36,10 +36,10 @@ async function init() {
   await loadConfigData();
   logger = new Logger(config);
 
-  transcriptionWorker = new Worker("./worker.js", { type: "module" });
-  transcriptionWorker.addEventListener("message", handleWorkerMessage);
-  transcriptionWorker.postMessage({
-    type: "load",
+  worker = new Worker("./worker.js", { type: "module" });
+  worker.addEventListener("message", handleWorkerMessage);
+  worker.postMessage({
+    type: "load_s2t",
     // data: "onnx-community/whisper-tiny.en",
     data: "onnx-community/whisper-base",
   });
@@ -49,6 +49,8 @@ async function init() {
 
 function handleWorkerMessage(event) {
   let data = event.data;
+  let type = data.type;
+  console.log(type);
   let status = data.status;
   switch (data.status) {
     case "loading":
@@ -265,11 +267,11 @@ async function startRecording() {
 
           if (isAudioAvailable) {
             transcribeAudio();
-            let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            audioChunks = [];
-            convertAudioToText(audioBlob).then((result) => {
-              updateGUI(result.text);
-            });
+            // let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            // audioChunks = [];
+            // convertAudioToText(audioBlob).then((result) => {
+            //   updateGUI(result.text);
+            // });
           } else if (!isRecording) {
             generateNotes();
           }
@@ -342,7 +344,7 @@ async function transcribeAudio() {
     let audio = decoded.getChannelData(0);
 
     // Send the audio data to the transcriber
-    transcriptionWorker.postMessage({
+    worker.postMessage({
       type: "transcribe",
       data: audio,
     });

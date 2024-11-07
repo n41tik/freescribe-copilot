@@ -33,6 +33,7 @@ class PipelineFactory {
 
 async function load(model) {
   self.postMessage({
+    type: "s2t",
     status: "loading",
     message: "Loading model...",
   });
@@ -51,10 +52,11 @@ async function load(model) {
   await p.getInstance((x) => {
     // We also add a progress callback to the pipeline so that we can
     // track model loading.
+    x.type = "s2t";
     self.postMessage(x);
   });
 
-  self.postMessage({ status: "ready" });
+  self.postMessage({ type: "s2t", status: "ready" });
 }
 let isRecording = false;
 async function transcribe(audio) {
@@ -64,27 +66,18 @@ async function transcribe(audio) {
   isRecording = true;
 
   self.postMessage({
+    type: "s2t",
     status: "start",
   });
 
   // Load transcriber model
   const transcriber = await PipelineFactory.getInstance((data) => {
+    data.type = "s2t";
     self.postMessage(data);
   });
 
   const chunk_length_s = 30;
   const stride_length_s = 5;
-
-  // const transcription = await transcriber(audio, {
-  //   // Sliding window
-  //   chunk_length_s,
-  //   stride_length_s,
-  // });
-  // // Send the output back to the main thread
-  // self.postMessage({
-  //   status: "complete",
-  //   output: transcription.text,
-  // });
 
   const time_precision =
     transcriber.processor.feature_extractor.config.chunk_length /
@@ -124,6 +117,7 @@ async function transcribe(audio) {
       chunks.at(-1).text += x;
 
       self.postMessage({
+        type: "s2t",
         status: "update",
         data: {
           text: "", // No need to send full text yet
@@ -165,6 +159,7 @@ async function transcribe(audio) {
   }).catch((error) => {
     console.error(error);
     self.postMessage({
+      type: "s2t",
       status: "error",
       data: error,
     });
@@ -174,6 +169,7 @@ async function transcribe(audio) {
   self.postMessage({
     status: "complete",
     data: {
+      type: "s2t",
       text: output.text, // No need to send full text yet
       chunks,
       tps,
@@ -186,7 +182,7 @@ self.addEventListener("message", async (event) => {
   const { type, data } = event.data;
 
   switch (type) {
-    case "load":
+    case "load_s2t":
       load(data);
       break;
     case "transcribe":
