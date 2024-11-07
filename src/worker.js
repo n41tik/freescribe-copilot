@@ -1,16 +1,21 @@
-import { pipeline, WhisperTextStreamer } from "./transformers.min.js";
+import {
+  pipeline,
+  WhisperTextStreamer,
+  InterruptableStoppingCriteria,
+} from "./transformers.min.js";
 
 // Define model factories
 // Ensures only one model is created of each type
-class PipelineFactory {
+
+const text2speech = "s2t";
+const llm = "llm";
+const stopping_criteria = new InterruptableStoppingCriteria();
+let isRecording = false;
+
+class TranslationPipeline {
   static task = "automatic-speech-recognition";
   static model = "onnx-community/whisper-base";
   static instance = null;
-
-  constructor(tokenizer, model) {
-    this.tokenizer = tokenizer;
-    this.model = model;
-  }
 
   static async getInstance(progress_callback = null) {
     if (this.instance === null) {
@@ -31,14 +36,14 @@ class PipelineFactory {
   }
 }
 
-async function load(model) {
+async function loadSpeech2Text(model) {
   self.postMessage({
-    type: "s2t",
+    type: text2speech,
     status: "loading",
     message: "Loading model...",
   });
 
-  const p = PipelineFactory;
+  const p = TranslationPipeline;
   if (p.model !== model) {
     // Invalidate model if different
     p.model = model;
@@ -52,13 +57,13 @@ async function load(model) {
   await p.getInstance((x) => {
     // We also add a progress callback to the pipeline so that we can
     // track model loading.
-    x.type = "s2t";
+    x.type = text2speech;
     self.postMessage(x);
   });
 
-  self.postMessage({ type: "s2t", status: "ready" });
+  self.postMessage({ type: text2speech, status: "ready" });
 }
-let isRecording = false;
+
 async function transcribe(audio) {
   if (isRecording) {
     return;
@@ -66,13 +71,13 @@ async function transcribe(audio) {
   isRecording = true;
 
   self.postMessage({
-    type: "s2t",
+    type: text2speech,
     status: "start",
   });
 
   // Load transcriber model
-  const transcriber = await PipelineFactory.getInstance((data) => {
-    data.type = "s2t";
+  const transcriber = await TranslationPipeline.getInstance((data) => {
+    data.type = text2speech;
     self.postMessage(data);
   });
 
@@ -117,7 +122,7 @@ async function transcribe(audio) {
       chunks.at(-1).text += x;
 
       self.postMessage({
-        type: "s2t",
+        type: text2speech,
         status: "update",
         data: {
           text: "", // No need to send full text yet
@@ -159,7 +164,7 @@ async function transcribe(audio) {
   }).catch((error) => {
     console.error(error);
     self.postMessage({
-      type: "s2t",
+      type: text2speech,
       status: "error",
       data: error,
     });
@@ -167,9 +172,9 @@ async function transcribe(audio) {
   });
 
   self.postMessage({
+    type: text2speech,
     status: "complete",
     data: {
-      type: "s2t",
       text: output.text, // No need to send full text yet
       chunks,
       tps,
@@ -178,15 +183,98 @@ async function transcribe(audio) {
   isRecording = false;
 }
 
+class LlmPipeline {
+  static task = "text-generation";
+  static model = "onnx-community/Llama-3.2-1B-Instruct-q4f16";
+  static instance = null;
+
+  static async getInstance(progress_callback = null) {
+    if (this.instance === null) {
+      this.instance = pipeline(this.task, this.model, {
+        dtype: "q4f16",
+        device: "webgpu",
+        progress_callback,
+      });
+    }
+
+    return this.instance;
+  }
+}
+
+async function loadLlm(model) {
+  self.postMessage({
+    type: llm,
+    status: "loading",
+    message: "Loading model...",
+  });
+
+  const p = LlmPipeline;
+  if (p.model !== model) {
+    // Invalidate model if different
+    p.model = model;
+
+    if (p.instance !== null) {
+      (await p.getInstance()).dispose();
+      p.instance = null;
+    }
+  }
+
+  // Load the pipeline and save it for future use.
+  await p.getInstance((x) => {
+    // We also add a progress callback to the pipeline so that we can
+    // track model loading.
+    x.type = llm;
+    self.postMessage(x);
+  });
+
+  self.postMessage({ type: llm, status: "ready" });
+}
+
+async function generate(messages) {
+  // Retrieve the text-generation pipeline.
+  const generator = await LlmPipeline.getInstance();
+
+  // Tell the main thread we are starting
+  self.postMessage({ type: llm, status: "start" });
+
+  const data = [{ role: "user", content: messages }];
+
+  const result = await generator(data, { max_new_tokens: 128 });
+  let outputText = result[0].generated_text.at(-1).content;
+
+  self.postMessage({
+    type: llm,
+    status: "complete",
+    data: {
+      text: outputText,
+    },
+  });
+}
+
 self.addEventListener("message", async (event) => {
   const { type, data } = event.data;
 
   switch (type) {
     case "load_s2t":
-      load(data);
+      loadSpeech2Text(data);
       break;
     case "transcribe":
       transcribe(data);
+      break;
+    case "load_llm":
+      loadLlm(data);
+      break;
+    case "generate":
+      stopping_criteria.reset();
+      generate(data);
+      break;
+    case "interrupt":
+      stopping_criteria.interrupt();
+      break;
+
+    case "reset":
+      // past_key_values_cache = null;
+      stopping_criteria.reset();
       break;
   }
 });

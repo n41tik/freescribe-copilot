@@ -32,6 +32,9 @@ const loadingStatus = document.getElementById("loadingStatus");
 const loadingMessage = document.getElementById("loadingMessage");
 const progressContainer = document.getElementById("progressContainer");
 
+let isS2TLoaded = false;
+let isLlmLoaded = false;
+
 async function init() {
   await loadConfigData();
   logger = new Logger(config);
@@ -42,6 +45,11 @@ async function init() {
     type: "load_s2t",
     // data: "onnx-community/whisper-tiny.en",
     data: "onnx-community/whisper-base",
+  });
+
+  worker.postMessage({
+    type: "load_llm",
+    data: "onnx-community/Llama-3.2-1B-Instruct-q4f16",
   });
 
   await getAudioDeviceList();
@@ -62,27 +70,48 @@ function handleWorkerMessage(event) {
       // updateProgress(data.file, 0, data.total);
       break;
     case "progress":
-      updateProgress(data.file, data.progress, data.total);
+      updateProgress(type + data.file, data.progress, data.total);
       break;
     case "done":
-      removeProgress(data.file);
+      removeProgress(type + data.file);
       break;
     case "ready":
-      setStatus(status);
+      switch (type) {
+        case "llm":
+          isLlmLoaded = true;
+          break;
+        case "s2t":
+          isS2TLoaded = true;
+          break;
+        default:
+          break;
+      }
+      if (isLlmLoaded && isS2TLoaded) {
+        setStatus(status);
+      }
       console.log(status);
       break;
     case "start":
       console.log(data);
       break;
     case "update":
-      // console.log(data);
+      console.log(data);
       break;
     case "complete":
       console.log(data);
-      if (config.REALTIME) {
-        userInput.value = "";
+      switch (type) {
+        case "llm":
+          showGeneratedNotes(data.data.text);
+          break;
+        case "s2t":
+          if (config.REALTIME) {
+            userInput.value = "";
+          }
+          updateGUI(data.data.text);
+          break;
+        default:
+          break;
       }
-      updateGUI(data.data.text);
       break;
   }
 }
@@ -480,12 +509,17 @@ function updateGUI(text) {
   }
 }
 
+async function showGeneratedNotes(notes) {
+  notesElement.textContent = notes;
+  notesElement.style.display = "block";
+  copyNotesButton.style.display = "block";
+}
+
 // Generate notes
 async function generateNotes() {
   logger.log("Generating notes");
 
   const text = userInput.value;
-  console.log(text);
   if (text.trim() === "") {
     logger.debug("Please record some audio first.");
     return;
@@ -494,11 +528,18 @@ async function generateNotes() {
   const sanitizedText = sanitizeInput(text);
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
 
-  try {
-    // Show loading indicator
-    notesElement.textContent = "Generating notes...";
-    notesElement.style.display = "block";
+  console.log(prompt);
 
+  notesElement.textContent = "Generating notes...";
+  notesElement.style.display = "block";
+
+  worker.postMessage({
+    type: "generate",
+    data: prompt,
+  });
+  return;
+
+  try {
     const response = await fetch(config.LLM_URL, {
       method: "POST",
       headers: {
@@ -523,9 +564,7 @@ async function generateNotes() {
 
     const result = await response.json();
     const notes = result.choices[0].message.content;
-    notesElement.textContent = notes;
-    notesElement.style.display = "block";
-    copyNotesButton.style.display = "block";
+    showGeneratedNotes(notes);
     // copyNotesToClipboard()
   } catch (error) {
     if (error.name === "AbortError") {
