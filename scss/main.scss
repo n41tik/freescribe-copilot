@@ -85,6 +85,17 @@ button {
   }
 }
 
+.slider-container {
+  display: flex;
+  align-items: center;
+}
+.slider-container span {
+  margin: 0 10px;
+}
+.slider-container input[type="range"] {
+  flex-grow: 1;
+}
+
 #generateNotesButton {
   @extend .btn-info;
 }
@@ -112,6 +123,10 @@ button {
   margin-top: 1rem;
   display: none;
   box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#copyNotesButton {
+  display: none;
 }
 
 #configSection {
@@ -240,4 +255,70 @@ h2 {
 
 #configureLink {
   @extend .btn-lg;
+}
+
+.snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+}
+
+.snackbar.show {
+  visibility: visible;
+  -webkit-animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
+  animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
+}
+
+@-webkit-keyframes fadeinsnackbar {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@keyframes fadeinsnackbar {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeoutsnackbar {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeoutsnackbar {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
 }
