@@ -71,7 +71,6 @@ async function init() {
 function handleWorkerMessage(event) {
   let data = event.data;
   let type = data.type;
-  console.log(type);
   let status = data.status;
   switch (data.status) {
     case "loading":
@@ -103,22 +102,41 @@ function handleWorkerMessage(event) {
       }
       break;
     case "start":
-      console.log(data);
+      switch (type) {
+        case "s2t":
+          showLoader();
+          break;
+        default:
+          break;
+      }
       break;
     case "update":
-      console.log(data);
       break;
     case "complete":
-      console.log(data);
       switch (type) {
         case "llm":
           showGeneratedNotes(data.data.text);
           break;
         case "s2t":
+          hideLoader();
           if (config.REALTIME) {
             userInput.value = "";
           }
           updateGUI(data.data.text);
+          break;
+        default:
+          break;
+      }
+      break;
+    case "error":
+      console.log(data);
+      switch (type) {
+        case "llm":
+          console.log("LLM Error")
+          break;
+        case "s2t":
+          hideLoader();
+          console.log("S2T error")
           break;
         default:
           break;
@@ -352,8 +370,6 @@ async function startRecording() {
               }
               logger.log("New recording started after silence");
             }, 50); // 50ms delay before starting new recording
-          } else {
-            logger.log("voice detected");
           }
         };
       }
@@ -469,8 +485,6 @@ async function convertAudioToText(audioBlob) {
     Authorization: "Bearer " + config.TRANSCRIPTION_API_KEY,
   };
 
-  apiCounter++;
-
   // Show loader
   showLoader();
 
@@ -493,21 +507,22 @@ async function convertAudioToText(audioBlob) {
       cause: error,
     });
   } finally {
-    apiCounter--;
-
-    // Hide loader
-    if (apiCounter == 0) {
-      hideLoader();
-    }
+    hideLoader();
   }
 }
 
 function showLoader() {
+  apiCounter++;
   document.getElementById("s2t-loader").style.display = "block";
 }
 
 function hideLoader() {
-  document.getElementById("s2t-loader").style.display = "none";
+  apiCounter--;
+
+  // Hide loader
+  if (apiCounter == 0) {
+    document.getElementById("s2t-loader").style.display = "none";
+  }
 }
 
 function updateGUI(text) {
@@ -524,6 +539,7 @@ async function showGeneratedNotes(notes) {
   notesElement.textContent = notes;
   notesElement.style.display = "block";
   copyNotesButton.style.display = "block";
+  recordButton.disabled = false;
 }
 
 // Generate notes
@@ -539,10 +555,9 @@ async function generateNotes() {
   const sanitizedText = sanitizeInput(text);
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
 
-  console.log(prompt);
-
   notesElement.textContent = "Generating notes...";
   notesElement.style.display = "block";
+  recordButton.disabled = true;
 
   if (config.LLM_LOCAL) {
     worker.postMessage({
@@ -585,6 +600,7 @@ async function generateNotes() {
       logger.error("Error generating notes:", error);
       notesElement.textContent = "Error generating notes. Please try again.";
     }
+    recordButton.disabled = false;
   }
 }
 
@@ -632,7 +648,6 @@ copyNotesButton.addEventListener("click", copyNotesToClipboard);
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log(request);
   if (request.action === "start_stop_recording") {
     if (isRecording) {
       stopRecording();

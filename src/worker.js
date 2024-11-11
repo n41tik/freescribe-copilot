@@ -121,15 +121,15 @@ async function transcribe(audio) {
       // Append text to the last chunk
       chunks.at(-1).text += x;
 
-      self.postMessage({
-        type: text2speech,
-        status: "update",
-        data: {
-          text: "", // No need to send full text yet
-          chunks,
-          tps,
-        },
-      });
+      // self.postMessage({
+      //   type: text2speech,
+      //   status: "update",
+      //   data: {
+      //     text: "", // No need to send full text yet
+      //     chunks,
+      //     tps,
+      //   },
+      // });
     },
     on_chunk_end: (x) => {
       const current = chunks.at(-1);
