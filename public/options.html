@@ -31,7 +31,43 @@
               ></i>
             </a>
           </h3>
-          <div class="config-item d-flex align-items-center">
+
+          <!-- New checkbox for local transcription -->
+          <div class="config-item form-check">
+            <input
+              type="checkbox"
+              id="transcriptionLocal"
+              name="transcriptionLocal"
+              class="form-check-input"
+            />
+            <label for="transcriptionLocal" class="form-check-label">
+              Use Local Transcription
+            </label>
+            &nbsp;
+            <i
+              class="fas fa-question-circle"
+              data-toggle="tooltip"
+              data-placement="right"
+              title="Enable this option to use local transcription."
+            ></i>
+          </div>
+
+          <div class="transcriptionLocalSettings hidden">
+            <div class="config-item">
+              <label for="transcriptionLocalModel">Transcription Model:</label>
+              <select
+                id="transcriptionLocalModel"
+                name="transcriptionLocalModel"
+                class="form-select"
+              >
+                <!-- Options will be populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div
+            class="transcriptionServerSettings config-item d-flex align-items-center"
+          >
             <div class="me-2">
               <label for="transcriptionHost">Host:</label>&nbsp;<i
                 class="fas fa-question-circle"
@@ -84,7 +120,7 @@
               </select>
             </div>
           </div>
-          <div class="config-item">
+          <div class="transcriptionServerSettings config-item">
             <label for="transcriptionApiKey"
               >Transcription Server API Key:</label
             >
@@ -117,7 +153,41 @@
               ></i>
             </a>
           </h3>
-          <div class="config-item d-flex align-items-center">
+
+          <!-- New checkbox for local LLM -->
+          <div class="config-item form-check">
+            <input
+              type="checkbox"
+              id="llmLocal"
+              name="llmLocal"
+              class="form-check-input"
+            />
+            <label for="llmLocal" class="form-check-label">
+              Use Local LLM
+            </label>
+            &nbsp;
+            <i
+              class="fas fa-question-circle"
+              data-toggle="tooltip"
+              data-placement="right"
+              title="Enable this option to use local language model."
+            ></i>
+          </div>
+
+          <div class="llmLocalSettings hidden">
+            <div class="config-item">
+              <label for="llmLocalModel">LLM Model:</label>
+              <select
+                id="llmLocalModel"
+                name="llmLocalModel"
+                class="form-select"
+              >
+                <!-- Options will be populated dynamically -->
+              </select>
+            </div>
+          </div>
+
+          <div class="llmServerSettings config-item d-flex align-items-center">
             <div class="me-2">
               <label for="llmHost">Host:</label>
               &nbsp;<i
@@ -167,7 +237,7 @@
               </select>
             </div>
           </div>
-          <div class="config-item">
+          <div class="llmServerSettings config-item">
             <label for="llmModel">LLM Model:</label>
             &nbsp;<i
               class="fas fa-question-circle"

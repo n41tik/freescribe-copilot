@@ -327,6 +327,10 @@ h2 {
   display: none !important;
 }
 
+.visible {
+  display: block;
+}
+
 #progressContainer {
   margin: 20px 0; /* Add some margin for spacing */
   width: 100%; /* Full width */
