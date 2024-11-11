@@ -1,5 +1,5 @@
 import { loadConfig } from "./config.js";
-import { sanitizeInput, showSnackbar, formatBytes } from "./helpers.js";
+import { sanitizeInput, formatBytes } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
 
@@ -66,6 +66,14 @@ async function init() {
   }
 
   await getAudioDeviceList();
+
+  toastr.options = {
+    "positionClass": "toast-bottom-center",
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000"
+  }
 }
 
 function handleWorkerMessage(event) {
@@ -447,7 +455,7 @@ async function stopRecording() {
 function pauseRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    showSnackbar("Recording is not in progress");
+    toastr.info("Recording is not in progress");
     return;
   }
 
@@ -465,7 +473,7 @@ function pauseRecording() {
 function resumeRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    showSnackbar("Recording is not in progress");
+    toastr.info("Recording is not in progress");
     return;
   }
 
@@ -608,18 +616,18 @@ async function generateNotes() {
 function copyNotesToClipboard() {
   const notes = notesElement.textContent; // Get the text content of the notes
   if (notes.trim() === "") {
-    showSnackbar("No notes to copy.");
+    toastr.info("No notes to copy.");
     return;
   }
 
   navigator.clipboard
     .writeText(notes)
     .then(() => {
-      showSnackbar("Notes copied to clipboard!");
+      toastr.info("Notes copied to clipboard!");
     })
     .catch((err) => {
       console.error("Failed to copy: ", err);
-      showSnackbar("Failed to copy notes. Please try again.");
+      toastr.info("Failed to copy notes. Please try again.");
     });
 }
 

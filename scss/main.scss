@@ -1,4 +1,5 @@
 @import "../node_modules/bootstrap/scss/bootstrap";
+@import "../node_modules/toastr/toastr.scss";
 
 // Custom variables
 $primary-color: #007bff;
@@ -255,72 +256,6 @@ h2 {
 
 #configureLink {
   @extend .btn-lg;
-}
-
-.snackbar {
-  visibility: hidden;
-  min-width: 250px;
-  margin-left: -125px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 2px;
-  padding: 16px;
-  position: fixed;
-  z-index: 1;
-  left: 50%;
-  bottom: 30px;
-  font-size: 17px;
-}
-
-.snackbar.show {
-  visibility: visible;
-  -webkit-animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
-  animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
-}
-
-@-webkit-keyframes fadeinsnackbar {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-  to {
-    bottom: 30px;
-    opacity: 1;
-  }
-}
-
-@keyframes fadeinsnackbar {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-  to {
-    bottom: 30px;
-    opacity: 1;
-  }
-}
-
-@-webkit-keyframes fadeoutsnackbar {
-  from {
-    bottom: 30px;
-    opacity: 1;
-  }
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
-}
-
-@keyframes fadeoutsnackbar {
-  from {
-    bottom: 30px;
-    opacity: 1;
-  }
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
 }
 
 .hidden {

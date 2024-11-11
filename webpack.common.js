@@ -46,6 +46,14 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         {
+          from: "node_modules/toastr/build/toastr.min.js",
+          to: "",
+        },
+      ],
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        {
           from: "node_modules/@huggingface/transformers/dist/transformers.min.js",
           to: "",
         },
