@@ -267,23 +267,12 @@ h2 {
 }
 
 #progressContainer {
-  margin: 20px 0; /* Add some margin for spacing */
-  width: 100%; /* Full width */
+  width: 350px;
 }
 
-.progress-item {
-  margin-bottom: 10px; /* Space between progress items */
-  background-color: #f8f9fa; /* Light background for the item */
-  border-radius: 5px; /* Rounded corners */
-  padding: 10px; /* Padding around the item */
-}
-
-.progress-bar {
-  height: 20px; /* Height of the progress bar */
-  background-color: #007bff; /* Primary color for the progress */
-  border-radius: 5px; /* Rounded corners for the progress bar */
-  transition: width 0.4s ease; /* Smooth transition for width changes */
-  width: 0; /* Initial width */
+.progress {
+  @extend .progress;
+  margin: 10px;
 }
 
 /* Loading Status Styles */
@@ -300,7 +289,6 @@ h2 {
   ); /* Slightly transparent white background */
   border: 1px solid $border-color; /* Border color */
   border-radius: 0.5rem; /* Rounded corners */
-  padding: 20px; /* Padding around the content */
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
   position: fixed; /* Fixed position to overlay on the screen */
   top: 50%; /* Center vertically */
