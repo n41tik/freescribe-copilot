@@ -39,18 +39,31 @@ async function init() {
   await loadConfigData();
   logger = new Logger(config);
 
-  worker = new Worker("./worker.js", { type: "module" });
-  worker.addEventListener("message", handleWorkerMessage);
-  worker.postMessage({
-    type: "load_s2t",
-    // data: "onnx-community/whisper-tiny.en",
-    data: "onnx-community/whisper-base",
-  });
+  if (config.TRANSCRIPTION_LOCAL || config.LLM_LOCAL) {
+    worker = new Worker("./worker.js", { type: "module" });
+    worker.addEventListener("message", handleWorkerMessage);
 
-  worker.postMessage({
-    type: "load_llm",
-    data: "onnx-community/Llama-3.2-1B-Instruct-q4f16",
-  });
+    if (config.TRANSCRIPTION_LOCAL) {
+      worker.postMessage({
+        type: "load_s2t",
+        data: config.TRANSCRIPTION_LOCAL_MODEL,
+      });
+    } else {
+      isS2TLoaded = true;
+    }
+
+    if (config.LLM_LOCAL) {
+      worker.postMessage({
+        type: "load_llm",
+        data: config.LLM_LOCAL_MODEL,
+      });
+    } else {
+      isLlmLoaded = true;
+    }
+  } else {
+    isS2TLoaded = true;
+    isLlmLoaded = true;
+  }
 
   await getAudioDeviceList();
 }
@@ -64,7 +77,6 @@ function handleWorkerMessage(event) {
     case "loading":
       loadingMessage.textContent = data.message;
       setStatus(status);
-      console.log(status);
       break;
     case "initiate":
       // updateProgress(data.file, 0, data.total);
@@ -89,7 +101,6 @@ function handleWorkerMessage(event) {
       if (isLlmLoaded && isS2TLoaded) {
         setStatus(status);
       }
-      console.log(status);
       break;
     case "start":
       console.log(data);
@@ -120,11 +131,9 @@ function setStatus(status) {
   if (status === "loading") {
     loadingStatus.classList.remove("hidden");
     recordButton.disabled = true;
-    // appContent.classList.add("hidden");
   } else if (status === "ready") {
     loadingStatus.classList.add("hidden");
     recordButton.disabled = false;
-    // appContent.classList.remove("hidden");
   }
 }
 
@@ -240,7 +249,6 @@ async function startRecording() {
     logger.info("Recording already in progress");
     return;
   }
-  await loadConfigData();
 
   audioChunks = [];
   userInput.value = "";
@@ -295,12 +303,15 @@ async function startRecording() {
           );
 
           if (isAudioAvailable) {
-            transcribeAudio();
-            // let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            // audioChunks = [];
-            // convertAudioToText(audioBlob).then((result) => {
-            //   updateGUI(result.text);
-            // });
+            if (config.TRANSCRIPTION_LOCAL) {
+              transcribeAudio();
+            } else {
+              let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+              audioChunks = [];
+              convertAudioToText(audioBlob).then((result) => {
+                updateGUI(result.text);
+              });
+            }
           } else if (!isRecording) {
             generateNotes();
           }
@@ -533,11 +544,13 @@ async function generateNotes() {
   notesElement.textContent = "Generating notes...";
   notesElement.style.display = "block";
 
-  worker.postMessage({
-    type: "generate",
-    data: prompt,
-  });
-  return;
+  if (config.LLM_LOCAL) {
+    worker.postMessage({
+      type: "generate",
+      data: prompt,
+    });
+    return;
+  }
 
   try {
     const response = await fetch(config.LLM_URL, {
@@ -565,7 +578,6 @@ async function generateNotes() {
     const result = await response.json();
     const notes = result.choices[0].message.content;
     showGeneratedNotes(notes);
-    // copyNotesToClipboard()
   } catch (error) {
     if (error.name === "AbortError") {
       logger.log("Previous generateNotes request was aborted.");
