@@ -117,7 +117,9 @@ async function transcribe(audio) {
       }
     },
     callback_function: (x) => {
-      if (chunks.length === 0) return;
+      if (chunks.length === 0) {
+        return;
+      }
       // Append text to the last chunk
       chunks.at(-1).text += x;
 

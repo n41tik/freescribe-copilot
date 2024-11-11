@@ -68,89 +68,55 @@ async function init() {
   await getAudioDeviceList();
 
   toastr.options = {
-    "positionClass": "toast-bottom-center",
-    "showDuration": "300",
-    "hideDuration": "1000",
-    "timeOut": "5000",
-    "extendedTimeOut": "1000"
-  }
+    positionClass: "toast-bottom-center",
+    showDuration: "300",
+    hideDuration: "1000",
+    timeOut: "5000",
+    extendedTimeOut: "1000",
+  };
 }
 
+const workerStatusHandlers = {
+  initiate: (data) => {},
+  loading: (data) => {
+    loadingMessage.textContent = data.message;
+    setStatus("loading");
+  },
+  progress: (data, type) =>
+    updateProgress(type + data.file, data.progress, data.total),
+  done: (data, type) => removeProgress(type + data.file),
+  "ready:llm": (data) => {
+    isLlmLoaded = true;
+    if (isLlmLoaded && isS2TLoaded) {
+      setStatus("ready");
+    }
+  },
+  "ready:s2t": (data) => {
+    isS2TLoaded = true;
+    if (isLlmLoaded && isS2TLoaded) {
+      setStatus("ready");
+    }
+  },
+  "start:llm": (data) => {},
+  "start:s2t": (data) => showLoader(),
+  update: (data) => {},
+  "complete:llm": (data) => showGeneratedNotes(data.data.text),
+  "complete:s2t": (data) => {
+    hideLoader();
+    if (config.REALTIME) {
+      userInput.value = "";
+    }
+    updateGUI(data.data.text);
+  },
+  "error:llm": (data) => logger.error("LLM Error", data),
+  "error:s2t": (data) => logger.error("S2T Error", data),
+};
+
 function handleWorkerMessage(event) {
-  let data = event.data;
-  let type = data.type;
-  let status = data.status;
-  switch (data.status) {
-    case "loading":
-      loadingMessage.textContent = data.message;
-      setStatus(status);
-      break;
-    case "initiate":
-      // updateProgress(data.file, 0, data.total);
-      break;
-    case "progress":
-      updateProgress(type + data.file, data.progress, data.total);
-      break;
-    case "done":
-      removeProgress(type + data.file);
-      break;
-    case "ready":
-      switch (type) {
-        case "llm":
-          isLlmLoaded = true;
-          break;
-        case "s2t":
-          isS2TLoaded = true;
-          break;
-        default:
-          break;
-      }
-      if (isLlmLoaded && isS2TLoaded) {
-        setStatus(status);
-      }
-      break;
-    case "start":
-      switch (type) {
-        case "s2t":
-          showLoader();
-          break;
-        default:
-          break;
-      }
-      break;
-    case "update":
-      break;
-    case "complete":
-      switch (type) {
-        case "llm":
-          showGeneratedNotes(data.data.text);
-          break;
-        case "s2t":
-          hideLoader();
-          if (config.REALTIME) {
-            userInput.value = "";
-          }
-          updateGUI(data.data.text);
-          break;
-        default:
-          break;
-      }
-      break;
-    case "error":
-      console.log(data);
-      switch (type) {
-        case "llm":
-          console.log("LLM Error")
-          break;
-        case "s2t":
-          hideLoader();
-          console.log("S2T error")
-          break;
-        default:
-          break;
-      }
-      break;
-  }
+  const { type, status, ...data } = event.data;
+  let handler =
+    workerStatusHandlers[`${status}:${type}`] || workerStatusHandlers[status];
+  handler?.(data, type);
 }
 
 function setStatus(status) {
@@ -168,9 +134,14 @@ function updateProgress(file, progress, total) {
   if (!progressItem) {
     progressItem = document.createElement("div");
     progressItem.id = file;
-    progressItem.className = "progress-item";
+    progressItem.className = "progress";
     let totalSize = isNaN(total) ? "" : ` of ${formatBytes(total)}`;
-    progressItem.innerHTML = `<p>${file} ${totalSize}</p><div class="progress-bar"></div>`;
+    progressItem.innerHTML = `<div class="progress-bar"
+            role="progressbar"
+            style="width: 0%"
+            aria-valuenow="0"
+            aria-valuemin="0"
+            aria-valuemax="100"><small class="justify-content-center d-flex position-absolute w-100">${file} ${totalSize}</small></div>`;
     progressContainer.appendChild(progressItem);
   }
   const progressBar = progressItem.querySelector(".progress-bar");
@@ -179,7 +150,9 @@ function updateProgress(file, progress, total) {
 
 function removeProgress(file) {
   const progressItem = document.getElementById(file);
-  if (progressItem) progressContainer.removeChild(progressItem);
+  if (progressItem) {
+    progressContainer.removeChild(progressItem);
+  }
 }
 
 async function loadConfigData() {
@@ -400,20 +373,24 @@ async function transcribeAudio() {
     sampleRate: 16_000,
   });
 
-  const fileReader = new FileReader();
+  try {
+    const fileReader = new FileReader();
 
-  fileReader.onloadend = async () => {
-    const arrayBuffer = fileReader.result;
-    const decoded = await audioContext.decodeAudioData(arrayBuffer);
-    let audio = decoded.getChannelData(0);
+    fileReader.onloadend = async () => {
+      const arrayBuffer = fileReader.result;
+      const decoded = await audioContext.decodeAudioData(arrayBuffer);
+      let audio = decoded.getChannelData(0);
 
-    // Send the audio data to the transcriber
-    worker.postMessage({
-      type: "transcribe",
-      data: audio,
-    });
-  };
-  fileReader.readAsArrayBuffer(blob);
+      // Send the audio data to the transcriber
+      worker.postMessage({
+        type: "transcribe",
+        data: audio,
+      });
+    };
+    fileReader.readAsArrayBuffer(blob);
+  } finally {
+    audioContext.close();
+  }
 }
 
 async function stopRecording() {
@@ -626,7 +603,7 @@ function copyNotesToClipboard() {
       toastr.info("Notes copied to clipboard!");
     })
     .catch((err) => {
-      console.error("Failed to copy: ", err);
+      logger.error("Failed to copy: ", err);
       toastr.info("Failed to copy notes. Please try again.");
     });
 }
