@@ -4,7 +4,10 @@
   "description": "Chrome and Firefox Plugin to assist healthcare providers interacting with patients with transcribing and preparing notes, and other active assistance; under development.",
   "main": "index.js",
   "dependencies": {
-    "bootstrap": "^5.3.3"
+    "@huggingface/transformers": "^3.0.2",
+    "bootstrap": "^5.3.3",
+    "toastr": "^2.1.4",
+    "ts-loader": "^9.5.1"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

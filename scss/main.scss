@@ -1,4 +1,5 @@
 @import "../node_modules/bootstrap/scss/bootstrap";
+@import "../node_modules/toastr/toastr.scss";
 
 // Custom variables
 $primary-color: #007bff;
@@ -257,68 +258,60 @@ h2 {
   @extend .btn-lg;
 }
 
-.snackbar {
-  visibility: hidden;
-  min-width: 250px;
-  margin-left: -125px;
-  background-color: #333;
-  color: #fff;
-  text-align: center;
-  border-radius: 2px;
-  padding: 16px;
-  position: fixed;
-  z-index: 1;
-  left: 50%;
-  bottom: 30px;
-  font-size: 17px;
+.hidden {
+  display: none !important;
 }
 
-.snackbar.show {
-  visibility: visible;
-  -webkit-animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
-  animation: fadeinsnackbar 0.5s, fadeoutsnackbar 0.5s 2.5s;
+.visible {
+  display: block;
 }
 
-@-webkit-keyframes fadeinsnackbar {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-  to {
-    bottom: 30px;
-    opacity: 1;
-  }
+#progressContainer {
+  margin: 20px 0; /* Add some margin for spacing */
+  width: 100%; /* Full width */
 }
 
-@keyframes fadeinsnackbar {
-  from {
-    bottom: 0;
-    opacity: 0;
-  }
-  to {
-    bottom: 30px;
-    opacity: 1;
-  }
+.progress-item {
+  margin-bottom: 10px; /* Space between progress items */
+  background-color: #f8f9fa; /* Light background for the item */
+  border-radius: 5px; /* Rounded corners */
+  padding: 10px; /* Padding around the item */
 }
 
-@-webkit-keyframes fadeoutsnackbar {
-  from {
-    bottom: 30px;
-    opacity: 1;
-  }
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
+.progress-bar {
+  height: 20px; /* Height of the progress bar */
+  background-color: #007bff; /* Primary color for the progress */
+  border-radius: 5px; /* Rounded corners for the progress bar */
+  transition: width 0.4s ease; /* Smooth transition for width changes */
+  width: 0; /* Initial width */
 }
 
-@keyframes fadeoutsnackbar {
-  from {
-    bottom: 30px;
-    opacity: 1;
-  }
-  to {
-    bottom: 0;
-    opacity: 0;
-  }
+/* Loading Status Styles */
+#loadingStatus {
+  display: flex; /* Use flexbox for alignment */
+  flex-direction: column; /* Stack elements vertically */
+  align-items: center; /* Center items horizontally */
+  justify-content: center; /* Center items vertically */
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.9
+  ); /* Slightly transparent white background */
+  border: 1px solid $border-color; /* Border color */
+  border-radius: 0.5rem; /* Rounded corners */
+  padding: 20px; /* Padding around the content */
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
+  position: fixed; /* Fixed position to overlay on the screen */
+  top: 50%; /* Center vertically */
+  left: 50%; /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust for centering */
+  z-index: 1000; /* Ensure it appears above other content */
+}
+
+/* Loading Message Styles */
+#loadingMessage {
+  font-size: 1.2rem; /* Larger font size for visibility */
+  color: $primary-color; /* Use primary color for the text */
+  margin-bottom: 10px; /* Space between message and progress */
 }

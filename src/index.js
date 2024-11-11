@@ -1,5 +1,5 @@
 import { loadConfig } from "./config.js";
-import { sanitizeInput, showSnackbar } from "./helpers.js";
+import { sanitizeInput, formatBytes } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
 
@@ -27,11 +27,159 @@ let isRecording = false;
 let isPause = false;
 let apiCounter = 0;
 let logger;
+let worker;
+const loadingStatus = document.getElementById("loadingStatus");
+const loadingMessage = document.getElementById("loadingMessage");
+const progressContainer = document.getElementById("progressContainer");
+
+let isS2TLoaded = false;
+let isLlmLoaded = false;
 
 async function init() {
   await loadConfigData();
   logger = new Logger(config);
+
+  if (config.TRANSCRIPTION_LOCAL || config.LLM_LOCAL) {
+    worker = new Worker("./worker.js", { type: "module" });
+    worker.addEventListener("message", handleWorkerMessage);
+
+    if (config.TRANSCRIPTION_LOCAL) {
+      worker.postMessage({
+        type: "load_s2t",
+        data: config.TRANSCRIPTION_LOCAL_MODEL,
+      });
+    } else {
+      isS2TLoaded = true;
+    }
+
+    if (config.LLM_LOCAL) {
+      worker.postMessage({
+        type: "load_llm",
+        data: config.LLM_LOCAL_MODEL,
+      });
+    } else {
+      isLlmLoaded = true;
+    }
+  } else {
+    isS2TLoaded = true;
+    isLlmLoaded = true;
+  }
+
   await getAudioDeviceList();
+
+  toastr.options = {
+    "positionClass": "toast-bottom-center",
+    "showDuration": "300",
+    "hideDuration": "1000",
+    "timeOut": "5000",
+    "extendedTimeOut": "1000"
+  }
+}
+
+function handleWorkerMessage(event) {
+  let data = event.data;
+  let type = data.type;
+  let status = data.status;
+  switch (data.status) {
+    case "loading":
+      loadingMessage.textContent = data.message;
+      setStatus(status);
+      break;
+    case "initiate":
+      // updateProgress(data.file, 0, data.total);
+      break;
+    case "progress":
+      updateProgress(type + data.file, data.progress, data.total);
+      break;
+    case "done":
+      removeProgress(type + data.file);
+      break;
+    case "ready":
+      switch (type) {
+        case "llm":
+          isLlmLoaded = true;
+          break;
+        case "s2t":
+          isS2TLoaded = true;
+          break;
+        default:
+          break;
+      }
+      if (isLlmLoaded && isS2TLoaded) {
+        setStatus(status);
+      }
+      break;
+    case "start":
+      switch (type) {
+        case "s2t":
+          showLoader();
+          break;
+        default:
+          break;
+      }
+      break;
+    case "update":
+      break;
+    case "complete":
+      switch (type) {
+        case "llm":
+          showGeneratedNotes(data.data.text);
+          break;
+        case "s2t":
+          hideLoader();
+          if (config.REALTIME) {
+            userInput.value = "";
+          }
+          updateGUI(data.data.text);
+          break;
+        default:
+          break;
+      }
+      break;
+    case "error":
+      console.log(data);
+      switch (type) {
+        case "llm":
+          console.log("LLM Error")
+          break;
+        case "s2t":
+          hideLoader();
+          console.log("S2T error")
+          break;
+        default:
+          break;
+      }
+      break;
+  }
+}
+
+function setStatus(status) {
+  if (status === "loading") {
+    loadingStatus.classList.remove("hidden");
+    recordButton.disabled = true;
+  } else if (status === "ready") {
+    loadingStatus.classList.add("hidden");
+    recordButton.disabled = false;
+  }
+}
+
+function updateProgress(file, progress, total) {
+  let progressItem = document.getElementById(file);
+  if (!progressItem) {
+    progressItem = document.createElement("div");
+    progressItem.id = file;
+    progressItem.className = "progress-item";
+    let totalSize = isNaN(total) ? "" : ` of ${formatBytes(total)}`;
+    progressItem.innerHTML = `<p>${file} ${totalSize}</p><div class="progress-bar"></div>`;
+    progressContainer.appendChild(progressItem);
+  }
+  const progressBar = progressItem.querySelector(".progress-bar");
+  progressBar.style.width = `${progress.toFixed(2)}%`;
+}
+
+function removeProgress(file) {
+  const progressItem = document.getElementById(file);
+  if (progressItem) progressContainer.removeChild(progressItem);
 }
 
 async function loadConfigData() {
@@ -127,7 +275,6 @@ async function startRecording() {
     logger.info("Recording already in progress");
     return;
   }
-  await loadConfigData();
 
   audioChunks = [];
   userInput.value = "";
@@ -182,11 +329,15 @@ async function startRecording() {
           );
 
           if (isAudioAvailable) {
-            let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
-            audioChunks = [];
-            convertAudioToText(audioBlob).then((result) => {
-              updateGUI(result.text);
-            });
+            if (config.TRANSCRIPTION_LOCAL) {
+              transcribeAudio();
+            } else {
+              let audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+              audioChunks = [];
+              convertAudioToText(audioBlob).then((result) => {
+                updateGUI(result.text);
+              });
+            }
           } else if (!isRecording) {
             generateNotes();
           }
@@ -227,8 +378,6 @@ async function startRecording() {
               }
               logger.log("New recording started after silence");
             }, 50); // 50ms delay before starting new recording
-          } else {
-            logger.log("voice detected");
           }
         };
       }
@@ -241,6 +390,30 @@ async function startRecording() {
       stopButton.style.display = "inline";
     }
   );
+}
+
+// Function to transcribe the audio Blob
+async function transcribeAudio() {
+  let blob = new Blob(audioChunks, { type: "audio/wav" });
+
+  const audioContext = new AudioContext({
+    sampleRate: 16_000,
+  });
+
+  const fileReader = new FileReader();
+
+  fileReader.onloadend = async () => {
+    const arrayBuffer = fileReader.result;
+    const decoded = await audioContext.decodeAudioData(arrayBuffer);
+    let audio = decoded.getChannelData(0);
+
+    // Send the audio data to the transcriber
+    worker.postMessage({
+      type: "transcribe",
+      data: audio,
+    });
+  };
+  fileReader.readAsArrayBuffer(blob);
 }
 
 async function stopRecording() {
@@ -282,7 +455,7 @@ async function stopRecording() {
 function pauseRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    showSnackbar("Recording is not in progress");
+    toastr.info("Recording is not in progress");
     return;
   }
 
@@ -300,7 +473,7 @@ function pauseRecording() {
 function resumeRecording() {
   if (!isRecording) {
     logger.error("Recording is not in progress");
-    showSnackbar("Recording is not in progress");
+    toastr.info("Recording is not in progress");
     return;
   }
 
@@ -319,8 +492,6 @@ async function convertAudioToText(audioBlob) {
   const headers = {
     Authorization: "Bearer " + config.TRANSCRIPTION_API_KEY,
   };
-
-  apiCounter++;
 
   // Show loader
   showLoader();
@@ -344,21 +515,22 @@ async function convertAudioToText(audioBlob) {
       cause: error,
     });
   } finally {
-    apiCounter--;
-
-    // Hide loader
-    if (apiCounter == 0) {
-      hideLoader();
-    }
+    hideLoader();
   }
 }
 
 function showLoader() {
+  apiCounter++;
   document.getElementById("s2t-loader").style.display = "block";
 }
 
 function hideLoader() {
-  document.getElementById("s2t-loader").style.display = "none";
+  apiCounter--;
+
+  // Hide loader
+  if (apiCounter == 0) {
+    document.getElementById("s2t-loader").style.display = "none";
+  }
 }
 
 function updateGUI(text) {
@@ -371,12 +543,18 @@ function updateGUI(text) {
   }
 }
 
+async function showGeneratedNotes(notes) {
+  notesElement.textContent = notes;
+  notesElement.style.display = "block";
+  copyNotesButton.style.display = "block";
+  recordButton.disabled = false;
+}
+
 // Generate notes
 async function generateNotes() {
   logger.log("Generating notes");
 
   const text = userInput.value;
-  console.log(text);
   if (text.trim() === "") {
     logger.debug("Please record some audio first.");
     return;
@@ -385,11 +563,19 @@ async function generateNotes() {
   const sanitizedText = sanitizeInput(text);
   const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
 
-  try {
-    // Show loading indicator
-    notesElement.textContent = "Generating notes...";
-    notesElement.style.display = "block";
+  notesElement.textContent = "Generating notes...";
+  notesElement.style.display = "block";
+  recordButton.disabled = true;
 
+  if (config.LLM_LOCAL) {
+    worker.postMessage({
+      type: "generate",
+      data: prompt,
+    });
+    return;
+  }
+
+  try {
     const response = await fetch(config.LLM_URL, {
       method: "POST",
       headers: {
@@ -414,10 +600,7 @@ async function generateNotes() {
 
     const result = await response.json();
     const notes = result.choices[0].message.content;
-    notesElement.textContent = notes;
-    notesElement.style.display = "block";
-    copyNotesButton.style.display = "block";
-    // copyNotesToClipboard()
+    showGeneratedNotes(notes);
   } catch (error) {
     if (error.name === "AbortError") {
       logger.log("Previous generateNotes request was aborted.");
@@ -425,6 +608,7 @@ async function generateNotes() {
       logger.error("Error generating notes:", error);
       notesElement.textContent = "Error generating notes. Please try again.";
     }
+    recordButton.disabled = false;
   }
 }
 
@@ -432,18 +616,18 @@ async function generateNotes() {
 function copyNotesToClipboard() {
   const notes = notesElement.textContent; // Get the text content of the notes
   if (notes.trim() === "") {
-    showSnackbar("No notes to copy.");
+    toastr.info("No notes to copy.");
     return;
   }
 
   navigator.clipboard
     .writeText(notes)
     .then(() => {
-      showSnackbar("Notes copied to clipboard!");
+      toastr.info("Notes copied to clipboard!");
     })
     .catch((err) => {
       console.error("Failed to copy: ", err);
-      showSnackbar("Failed to copy notes. Please try again.");
+      toastr.info("Failed to copy notes. Please try again.");
     });
 }
 
@@ -472,7 +656,6 @@ copyNotesButton.addEventListener("click", copyNotesToClipboard);
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log(request);
   if (request.action === "start_stop_recording") {
     if (isRecording) {
       stopRecording();

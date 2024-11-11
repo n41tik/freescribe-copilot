@@ -1,11 +1,20 @@
 export const defaultConfig = {
   // Transcription
+  TRANSCRIPTION_LOCAL: true,
+  TRANSCRIPTION_LOCAL_MODELS: [
+    "onnx-community/whisper-tiny.en",
+    "onnx-community/whisper-base",
+  ],
+  TRANSCRIPTION_LOCAL_MODEL: "onnx-community/whisper-base",
   TRANSCRIPTION_URL: "http://localhost:8000/whisperaudio",
   TRANSCRIPTION_HOST: "localhost",
   TRANSCRIPTION_PORT: 8000,
   TRANSCRIPTION_SECURE: 0,
   TRANSCRIPTION_API_KEY: "",
   // LLM
+  LLM_LOCAL: true,
+  LLM_LOCAL_MODELS: ["onnx-community/Llama-3.2-1B-Instruct-q4f16"],
+  LLM_LOCAL_MODEL: "onnx-community/Llama-3.2-1B-Instruct-q4f16",
   LLM_URL: "http://localhost:1337/v1/chat/completions",
   LLM_HOST: "localhost",
   LLM_PORT: 1337,

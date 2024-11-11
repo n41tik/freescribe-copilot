@@ -5,6 +5,19 @@ let config;
 
 function showConfig() {
   // Transcription settings
+  document.getElementById("transcriptionLocal").checked =
+    config.TRANSCRIPTION_LOCAL;
+  toggleTranscriptionSettings();
+
+  const transcriptionLocalModelSelect = document.getElementById(
+    "transcriptionLocalModel"
+  );
+  transcriptionLocalModelSelect.innerHTML =
+    config.TRANSCRIPTION_LOCAL_MODELS.map(
+      (model) => `<option value="${model}">${model}</option>`
+    ).join("");
+  transcriptionLocalModelSelect.value = config.TRANSCRIPTION_LOCAL_MODEL;
+
   document.getElementById("transcriptionHost").value =
     config.TRANSCRIPTION_HOST;
   document.getElementById("transcriptionPort").value =
@@ -15,10 +28,20 @@ function showConfig() {
     config.TRANSCRIPTION_API_KEY;
 
   // LLM settings
+  document.getElementById("llmLocal").checked = config.LLM_LOCAL;
+  toggleLLMSettings();
+
+  const llmLocalModelSelect = document.getElementById("llmLocalModel");
+  llmLocalModelSelect.innerHTML = config.LLM_LOCAL_MODELS.map(
+    (model) => `<option value="${model}">${model}</option>`
+  ).join("");
+  llmLocalModelSelect.value = config.LLM_LOCAL_MODEL;
+
   document.getElementById("llmHost").value = config.LLM_HOST;
   document.getElementById("llmPort").value = config.LLM_PORT;
   document.getElementById("llmSecure").value = config.LLM_SECURE;
   document.getElementById("llmModel").value = config.LLM_MODEL;
+
   document.getElementById("llmContextBefore").value = config.LLM_CONTEXT_BEFORE;
   document.getElementById("llmContextAfter").value = config.LLM_CONTEXT_AFTER;
   document.getElementById("realtimeToggle").checked = config.REALTIME;
@@ -32,8 +55,40 @@ function showConfig() {
   document.getElementById("debugMode").checked = config.DEBUG_MODE;
 }
 
+function showHideSettings(selector, add_class, remove_class) {
+  document.querySelectorAll(selector).forEach((e) => {
+    e.classList.remove(remove_class);
+    e.classList.add(add_class);
+  });
+}
+
+function toggleTranscriptionSettings() {
+  if (document.getElementById("transcriptionLocal").checked) {
+    showHideSettings(".transcriptionLocalSettings", "visible", "hidden");
+    showHideSettings(".transcriptionServerSettings", "hidden", "visible");
+  } else {
+    showHideSettings(".transcriptionLocalSettings", "hidden", "visible");
+    showHideSettings(".transcriptionServerSettings", "visible", "hidden");
+  }
+}
+
+function toggleLLMSettings() {
+  if (document.getElementById("llmLocal").checked) {
+    showHideSettings(".llmLocalSettings", "visible", "hidden");
+    showHideSettings(".llmServerSettings", "hidden", "visible");
+  } else {
+    showHideSettings(".llmLocalSettings", "hidden", "visible");
+    showHideSettings(".llmServerSettings", "visible", "hidden");
+  }
+}
+
 function updateConfig() {
   // Transcription settings
+  config.TRANSCRIPTION_LOCAL =
+    document.getElementById("transcriptionLocal").checked;
+  config.TRANSCRIPTION_LOCAL_MODEL = document.getElementById(
+    "transcriptionLocalModel"
+  ).value;
   config.TRANSCRIPTION_HOST =
     document.getElementById("transcriptionHost").value;
   config.TRANSCRIPTION_PORT = parseInt(
@@ -54,6 +109,8 @@ function updateConfig() {
     ) + "/whisperaudio";
 
   // LLM settings
+  config.LLM_LOCAL = document.getElementById("llmLocal").checked;
+  config.LLM_LOCAL_MODEL = document.getElementById("llmLocalModel").value;
   config.LLM_HOST = document.getElementById("llmHost").value;
   config.LLM_PORT = parseInt(document.getElementById("llmPort").value);
   config.LLM_SECURE = parseInt(document.getElementById("llmSecure").value);
@@ -79,7 +136,9 @@ function updateConfig() {
 
   // Save configuration
   saveConfig(config).then(function () {
-    alert("Configuration saved!");
+    alert(
+      "Configuration saved! Please restart the extension for the settings to take effect."
+    );
     closeTab(); // Close the tab after saving
   });
 }
@@ -188,6 +247,14 @@ document.addEventListener("DOMContentLoaded", async function (event) {
       updateConfig();
     },
   });
+
+  // Event listeners for the checkboxes
+  document
+    .getElementById("transcriptionLocal")
+    .addEventListener("change", toggleTranscriptionSettings);
+  document
+    .getElementById("llmLocal")
+    .addEventListener("change", toggleLLMSettings);
 });
 
 // Close without saving
