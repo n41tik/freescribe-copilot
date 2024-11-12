@@ -76,6 +76,12 @@ async function init() {
   };
 }
 
+const llmHandler = {
+  "pre-processing": (text) => generateNotes(text),
+  "notes-processing": (text) => postProcessData(text),
+  "post-processing": (text) => showGeneratedNotes(text),
+};
+
 const workerStatusHandlers = {
   initiate: (data) => {},
   loading: (data) => {
@@ -100,7 +106,11 @@ const workerStatusHandlers = {
   "start:llm": (data) => {},
   "start:s2t": (data) => showLoader(),
   update: (data) => {},
-  "complete:llm": (data) => showGeneratedNotes(data.data.text),
+  "complete:llm": (data) => {
+    let { text, type } = data.data;
+
+    llmHandler[type]?.(text);
+  },
   "complete:s2t": (data) => {
     hideLoader();
     if (config.REALTIME) {
@@ -312,7 +322,7 @@ async function startRecording() {
               });
             }
           } else if (!isRecording) {
-            generateNotes();
+            preProcessData();
           }
         }
       };
@@ -424,7 +434,7 @@ async function stopRecording() {
   pauseButton.style.display = "inline";
 
   if (isPause) {
-    generateNotes();
+    preProcessData();
     isPause = false;
   }
 }
@@ -516,42 +526,11 @@ function updateGUI(text) {
 
   // Hide loader
   if (apiCounter == 0 && !isRecording) {
-    generateNotes();
+    preProcessData();
   }
 }
 
-async function showGeneratedNotes(notes) {
-  notesElement.textContent = notes;
-  notesElement.style.display = "block";
-  copyNotesButton.style.display = "block";
-  recordButton.disabled = false;
-}
-
-// Generate notes
-async function generateNotes() {
-  logger.log("Generating notes");
-
-  const text = userInput.value;
-  if (text.trim() === "") {
-    logger.debug("Please record some audio first.");
-    return;
-  }
-
-  const sanitizedText = sanitizeInput(text);
-  const prompt = `${config.LLM_CONTEXT_BEFORE} ${sanitizedText} ${config.LLM_CONTEXT_AFTER}`;
-
-  notesElement.textContent = "Generating notes...";
-  notesElement.style.display = "block";
-  recordButton.disabled = true;
-
-  if (config.LLM_LOCAL) {
-    worker.postMessage({
-      type: "generate",
-      data: prompt,
-    });
-    return;
-  }
-
+async function llmApiCall(prompt) {
   try {
     const response = await fetch(config.LLM_URL, {
       method: "POST",
@@ -576,8 +555,78 @@ async function generateNotes() {
     }
 
     const result = await response.json();
-    const notes = result.choices[0].message.content;
-    showGeneratedNotes(notes);
+    return result.choices[0].message.content;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function preProcessData() {
+  logger.log("Pre processing notes");
+
+  const text = userInput.value;
+  if (text.trim() === "") {
+    logger.debug("Please record some audio first.");
+    return;
+  }
+
+  let sanitizedText = sanitizeInput(text);
+
+  if (config.PRE_PROCESSING) {
+    const preProcessingPrompt = `${config.PRE_PROCESSING_PROMPT} ${sanitizedText}`;
+
+    notesElement.textContent = "Pre Processing data...";
+    notesElement.style.display = "block";
+    recordButton.disabled = true;
+
+    if (config.LLM_LOCAL) {
+      worker.postMessage({
+        type: "generate",
+        data: {
+          message: preProcessingPrompt,
+          type: "pre-processing",
+        },
+      });
+      return;
+    }
+
+    try {
+      sanitizedText = await llmApiCall(preProcessingPrompt);
+    } catch (error) {
+      notesElement.textContent =
+        "Error in Pre Processing data. Please try again.";
+      recordButton.disabled = false;
+      return;
+    }
+  }
+
+  generateNotes(sanitizedText);
+}
+
+// Generate notes
+async function generateNotes(text) {
+  logger.log("generating notes");
+  const prompt = `${config.LLM_CONTEXT_BEFORE} ${text} ${config.LLM_CONTEXT_AFTER}`;
+
+  notesElement.textContent = "Generating notes...";
+  notesElement.style.display = "block";
+  recordButton.disabled = true;
+
+  if (config.LLM_LOCAL) {
+    worker.postMessage({
+      type: "generate",
+      data: {
+        message: prompt,
+        type: "notes-processing",
+      },
+    });
+    return;
+  }
+
+  try {
+    let notes = await llmApiCall(prompt);
+
+    postProcessData(notes);
   } catch (error) {
     if (error.name === "AbortError") {
       logger.log("Previous generateNotes request was aborted.");
@@ -587,6 +636,47 @@ async function generateNotes() {
     }
     recordButton.disabled = false;
   }
+}
+
+async function postProcessData(text) {
+  logger.log("post processing notes");
+  let notes = text;
+  if (config.POST_PROCESSING) {
+    const postProcessingPrompt = `${config.POST_PROCESSING_PROMPT} ${text}`;
+
+    notesElement.textContent = "Post Processing data...";
+    notesElement.style.display = "block";
+    recordButton.disabled = true;
+
+    if (config.LLM_LOCAL) {
+      worker.postMessage({
+        type: "generate",
+        data: {
+          message: postProcessingPrompt,
+          type: "post-processing",
+        },
+      });
+      return;
+    }
+
+    try {
+      notes = await llmApiCall(postProcessingPrompt);
+    } catch (error) {
+      notesElement.textContent =
+        "Error in Post Processing data. Please try again.";
+      recordButton.disabled = false;
+      return;
+    }
+  }
+
+  showGeneratedNotes(notes);
+}
+
+async function showGeneratedNotes(notes) {
+  notesElement.textContent = notes;
+  notesElement.style.display = "block";
+  copyNotesButton.style.display = "block";
+  recordButton.disabled = false;
 }
 
 // Add this function to handle copying notes to clipboard
@@ -627,7 +717,7 @@ resumeButton.addEventListener("click", resumeRecording);
 
 audioInputSelect.addEventListener("change", startMicStream);
 
-generateNotesButton.addEventListener("click", generateNotes);
+generateNotesButton.addEventListener("click", preProcessData);
 
 copyNotesButton.addEventListener("click", copyNotesToClipboard);
 

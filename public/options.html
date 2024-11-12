@@ -388,6 +388,64 @@
             ></i>
           </div>
 
+          <h3 class="mt-4">Pre and Post Processing Settings</h3>
+
+          <div class="config-item form-check">
+            <input
+              type="checkbox"
+              id="preProcessing"
+              name="preProcessing"
+              class="form-check-input"
+            />
+            <label for="preProcessing" class="form-check-label">
+              Enable Pre-Processing
+            </label>
+            &nbsp;
+            <i
+              class="fas fa-question-circle"
+              data-toggle="tooltip"
+              data-placement="right"
+              title="Enable this option to apply pre-processing to the input."
+            ></i>
+          </div>
+          <div class="pre-processing-settings config-item">
+            <label for="preProcessingPrompt">Pre-Processing Prompt:</label>
+            <textarea
+              id="preProcessingPrompt"
+              name="preProcessingPrompt"
+              rows="3"
+              class="pre-processing-form form-control"
+            ></textarea>
+          </div>
+
+          <div class="config-item form-check">
+            <input
+              type="checkbox"
+              id="postProcessing"
+              name="postProcessing"
+              class="form-check-input"
+            />
+            <label for="postProcessing" class="form-check-label">
+              Enable Post-Processing
+            </label>
+            &nbsp;
+            <i
+              class="fas fa-question-circle"
+              data-toggle="tooltip"
+              data-placement="right"
+              title="Enable this option to apply post-processing to the output."
+            ></i>
+          </div>
+          <div class="post-processing-settings config-item">
+            <label for="postProcessingPrompt">Post-Processing Prompt:</label>
+            <textarea
+              id="postProcessingPrompt"
+              name="postProcessingPrompt"
+              rows="3"
+              class="post-processing-form form-control"
+            ></textarea>
+          </div>
+
           <div class="mt-4 d-flex justify-content-end">
             <button type="submit" id="saveConfig" class="btn btn-primary me-3">
               Save

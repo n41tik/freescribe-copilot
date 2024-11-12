@@ -232,14 +232,15 @@ async function loadLlm(model) {
   self.postMessage({ type: llm, status: "ready" });
 }
 
-async function generate(messages) {
+async function generate(data) {
+  const { message, type } = data;
   // Retrieve the text-generation pipeline.
   const generator = await LlmPipeline.getInstance();
 
   // Tell the main thread we are starting
   self.postMessage({ type: llm, status: "start" });
 
-  const data = [{ role: "user", content: messages }];
+  const data = [{ role: "user", content: message }];
 
   const result = await generator(data, { max_new_tokens: 128 });
   let outputText = result[0].generated_text.at(-1).content;
@@ -248,6 +249,7 @@ async function generate(messages) {
     type: llm,
     status: "complete",
     data: {
+      type: type,
       text: outputText,
     },
   });
