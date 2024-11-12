@@ -32,6 +32,13 @@ export const defaultConfig = {
   MIN_SILENCE_DURATION: 500,
   // Logging
   DEBUG_MODE: true,
+  // Pre and Post processing
+  PRE_PROCESSING: false,
+  PRE_PROCESSING_PROMPT:
+    "Please break down the conversation into a list of facts. Take the conversation and transform it to a easy to read list:",
+  POST_PROCESSING: false,
+  POST_PROCESSING_PROMPT:
+    "Please check your work from the list of facts and ensure the SOAP note is accurate based on the information. Please ensure the data is accurate in regards to the list of facts.",
 };
 
 export function loadConfig() {

@@ -53,12 +53,30 @@ function showConfig() {
   document.getElementById("minSilenceDuration").value =
     config.MIN_SILENCE_DURATION;
   document.getElementById("debugMode").checked = config.DEBUG_MODE;
+
+  // Pre-processing settings
+  document.getElementById("preProcessing").checked = config.PRE_PROCESSING;
+  document.getElementById("preProcessingPrompt").value =
+    config.PRE_PROCESSING_PROMPT;
+  togglePreProcessingSettings();
+
+  // Post-processing settings
+  document.getElementById("postProcessing").checked = config.POST_PROCESSING;
+  document.getElementById("postProcessingPrompt").value =
+    config.POST_PROCESSING_PROMPT;
+  togglePostProcessingSettings();
 }
 
 function showHideSettings(selector, add_class, remove_class) {
   document.querySelectorAll(selector).forEach((e) => {
     e.classList.remove(remove_class);
     e.classList.add(add_class);
+  });
+}
+
+function formValidations(selector, value) {
+  document.querySelectorAll(selector).forEach((e) => {
+    e.required = value;
   });
 }
 
@@ -79,6 +97,26 @@ function toggleLLMSettings() {
   } else {
     showHideSettings(".llmLocalSettings", "hidden", "visible");
     showHideSettings(".llmServerSettings", "visible", "hidden");
+  }
+}
+
+function togglePreProcessingSettings() {
+  if (document.getElementById("preProcessing").checked) {
+    showHideSettings(".pre-processing-settings", "visible", "hidden");
+    formValidations(".pre-processing-form", true);
+  } else {
+    showHideSettings(".pre-processing-settings", "hidden", "visible");
+    formValidations(".pre-processing-form", false);
+  }
+}
+
+function togglePostProcessingSettings() {
+  if (document.getElementById("postProcessing").checked) {
+    showHideSettings(".post-processing-settings", "visible", "hidden");
+    formValidations(".post-processing-form", true);
+  } else {
+    showHideSettings(".post-processing-settings", "hidden", "visible");
+    formValidations(".post-processing-form", false);
   }
 }
 
@@ -133,6 +171,18 @@ function updateConfig() {
     document.getElementById("minSilenceDuration").value
   );
   config.DEBUG_MODE = document.getElementById("debugMode").checked;
+
+  // Pre-processing settings
+  config.PRE_PROCESSING = document.getElementById("preProcessing").checked;
+  config.PRE_PROCESSING_PROMPT = document.getElementById(
+    "preProcessingPrompt"
+  ).value;
+
+  // Post-processing settings
+  config.POST_PROCESSING = document.getElementById("postProcessing").checked;
+  config.POST_PROCESSING_PROMPT = document.getElementById(
+    "postProcessingPrompt"
+  ).value;
 
   // Save configuration
   saveConfig(config).then(function () {
@@ -255,6 +305,14 @@ document.addEventListener("DOMContentLoaded", async function (event) {
   document
     .getElementById("llmLocal")
     .addEventListener("change", toggleLLMSettings);
+
+  document
+    .getElementById("preProcessing")
+    .addEventListener("change", togglePreProcessingSettings);
+
+  document
+    .getElementById("postProcessing")
+    .addEventListener("change", togglePostProcessingSettings);
 });
 
 // Close without saving
