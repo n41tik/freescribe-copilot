@@ -240,9 +240,9 @@ async function generate(data) {
   // Tell the main thread we are starting
   self.postMessage({ type: llm, status: "start" });
 
-  const data = [{ role: "user", content: message }];
+  const prompt = [{ role: "user", content: message }];
 
-  const result = await generator(data, { max_new_tokens: 128 });
+  const result = await generator(prompt, { max_new_tokens: 128 });
   let outputText = result[0].generated_text.at(-1).content;
 
   self.postMessage({
