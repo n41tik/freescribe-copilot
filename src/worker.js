@@ -243,7 +243,17 @@ async function generate(data) {
   const prompt = [{ role: "user", content: message }];
 
   const result = await generator(prompt, { max_new_tokens: 128 });
-  let outputText = result[0].generated_text.at(-1).content;
+
+  let outputText;
+  try {
+    const lastGenerated = result[0]?.generated_text?.at(-1);
+    if (!lastGenerated) {
+      throw new Error("No generated text available");
+    }
+    outputText = lastGenerated.content;
+  } catch (error) {
+    outputText = "Failed to generate response";
+  }
 
   self.postMessage({
     type: llm,
