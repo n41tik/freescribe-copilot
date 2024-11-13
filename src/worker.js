@@ -240,10 +240,20 @@ async function generate(data) {
   // Tell the main thread we are starting
   self.postMessage({ type: llm, status: "start" });
 
-  const data = [{ role: "user", content: message }];
+  const prompt = [{ role: "user", content: message }];
 
-  const result = await generator(data, { max_new_tokens: 128 });
-  let outputText = result[0].generated_text.at(-1).content;
+  const result = await generator(prompt, { max_new_tokens: 128 });
+
+  let outputText;
+  try {
+    const lastGenerated = result[0]?.generated_text?.at(-1);
+    if (!lastGenerated) {
+      throw new Error("No generated text available");
+    }
+    outputText = lastGenerated.content;
+  } catch (error) {
+    outputText = "Failed to generate response";
+  }
 
   self.postMessage({
     type: llm,
