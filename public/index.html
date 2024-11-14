@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="fontawesom.min.css" />
     <script src="jquery-3.7.1.min.js"></script>
     <script src="toastr.min.js"></script>
+    <script src="bootstrap.bundle.min.js"></script>
   </head>
   <body>
     <div class="popup-container">
@@ -75,8 +76,14 @@
         </button>
 
         <div class="text-center mt-4">
-          <a href="#" id="toggleConfig" class="text-muted">
+          <a href="#" id="toggleConfig" class="text-muted settings">
             <i class="fas fa-cog"></i> Configuration
+          </a>
+        </div>
+
+        <div class="text-center mt-4">
+          <a href="#" id="showHistory" class="text-muted settings">
+            <i class="fas fa-history"></i> History
           </a>
         </div>
       </div>
@@ -92,6 +99,39 @@
         For more information, click
         <a href="welcome.html" target="_blank">here</a>.
       </p>
+    </div>
+    <div
+      class="modal fade"
+      id="historyModel"
+      tabindex="-1"
+      aria-labelledby="historyTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h1 class="modal-title fs-5" id="historyTitle">History</h1>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="accordion" id="historyAccordian"></div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="index.js"></script>

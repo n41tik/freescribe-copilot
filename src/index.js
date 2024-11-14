@@ -2,6 +2,7 @@ import { loadConfig } from "./config.js";
 import { sanitizeInput, formatBytes } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
+import { saveNotesHistory, getHistory } from "./history.js";
 
 let config;
 let mediaRecorder;
@@ -77,9 +78,9 @@ async function init() {
 }
 
 const llmHandler = {
-  "pre-processing": (text) => generateNotes(text),
-  "notes-processing": (text) => postProcessData(text),
-  "post-processing": (text) => showGeneratedNotes(text),
+  "pre-processing": (text, extra) => generateNotes(extra.text, text),
+  "notes-processing": (text, extra) => postProcessData(text, extra.facts),
+  "post-processing": (text, extra) => showGeneratedNotes(text),
 };
 
 const workerStatusHandlers = {
@@ -107,9 +108,9 @@ const workerStatusHandlers = {
   "start:s2t": (data) => showLoader(),
   update: (data) => {},
   "complete:llm": (data) => {
-    let { text, type } = data.data;
+    let { text, type, extra } = data.data;
 
-    llmHandler[type]?.(text);
+    llmHandler[type]?.(text, extra);
   },
   "complete:s2t": (data) => {
     hideLoader();
@@ -571,6 +572,7 @@ async function preProcessData() {
   }
 
   let sanitizedText = sanitizeInput(text);
+  let listOfFacts = null;
 
   if (config.PRE_PROCESSING) {
     const preProcessingPrompt = `${config.PRE_PROCESSING_PROMPT} ${sanitizedText}`;
@@ -585,13 +587,16 @@ async function preProcessData() {
         data: {
           message: preProcessingPrompt,
           type: "pre-processing",
+          extra: {
+            text: sanitizedText,
+          },
         },
       });
       return;
     }
 
     try {
-      sanitizedText = await llmApiCall(preProcessingPrompt);
+      listOfFacts = await llmApiCall(preProcessingPrompt);
     } catch (error) {
       notesElement.textContent =
         "Error in Pre Processing data. Please try again.";
@@ -600,13 +605,20 @@ async function preProcessData() {
     }
   }
 
-  generateNotes(sanitizedText);
+  generateNotes(sanitizedText, listOfFacts);
 }
 
 // Generate notes
-async function generateNotes(text) {
+async function generateNotes(text, facts) {
   logger.log("generating notes");
-  const prompt = `${config.LLM_CONTEXT_BEFORE} ${text} ${config.LLM_CONTEXT_AFTER}`;
+
+  let promptText = text;
+
+  if (facts) {
+    promptText = facts;
+  }
+
+  const prompt = `${config.LLM_CONTEXT_BEFORE} ${promptText} ${config.LLM_CONTEXT_AFTER}`;
 
   notesElement.textContent = "Generating notes...";
   notesElement.style.display = "block";
@@ -618,6 +630,10 @@ async function generateNotes(text) {
       data: {
         message: prompt,
         type: "notes-processing",
+        extra: {
+          text: text,
+          facts: facts,
+        },
       },
     });
     return;
@@ -626,7 +642,7 @@ async function generateNotes(text) {
   try {
     let notes = await llmApiCall(prompt);
 
-    postProcessData(notes);
+    postProcessData(notes, facts);
   } catch (error) {
     if (error.name === "AbortError") {
       logger.log("Previous generateNotes request was aborted.");
@@ -638,11 +654,19 @@ async function generateNotes(text) {
   }
 }
 
-async function postProcessData(text) {
+async function postProcessData(text, facts) {
   logger.log("post processing notes");
   let notes = text;
   if (config.POST_PROCESSING) {
-    const postProcessingPrompt = `${config.POST_PROCESSING_PROMPT} ${text}`;
+    let promptText = "";
+
+    if (facts) {
+      promptText += `\nFacts:${facts}`;
+    }
+
+    promptText += `\nNotes:${text}`;
+
+    const postProcessingPrompt = `${config.POST_PROCESSING_PROMPT} ${promptText}`;
 
     notesElement.textContent = "Post Processing data...";
     notesElement.style.display = "block";
@@ -654,6 +678,10 @@ async function postProcessData(text) {
         data: {
           message: postProcessingPrompt,
           type: "post-processing",
+          extra: {
+            text: text,
+            facts: facts,
+          },
         },
       });
       return;
@@ -677,6 +705,7 @@ async function showGeneratedNotes(notes) {
   notesElement.style.display = "block";
   copyNotesButton.style.display = "block";
   recordButton.disabled = false;
+  saveNotesHistory(notes);
 }
 
 // Add this function to handle copying notes to clipboard
@@ -720,6 +749,37 @@ audioInputSelect.addEventListener("change", startMicStream);
 generateNotesButton.addEventListener("click", preProcessData);
 
 copyNotesButton.addEventListener("click", copyNotesToClipboard);
+
+document
+  .getElementById("showHistory")
+  .addEventListener("click", async function () {
+    let html = ``;
+
+    let notes_history = await getHistory();
+
+    const accordianId = "historyAccordian";
+
+    for (let index = 0; index < notes_history.length; index++) {
+      const historyAccordian = notes_history[index];
+
+      let dateTime = new Date(historyAccordian.time).toLocaleString();
+
+      html += `<div class="accordion-item">
+                <h2 class="accordion-header">
+                  <buttonn class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#historyAccordian${index}" aria-expanded="false" aria-controls="historyAccordian${index}"
+                  >${dateTime}</button>
+                </h2>
+                <div id="historyAccordian${index}" class="accordion-collapse collapse" data-bs-parent="#${accordianId}">
+                  <div class="accordion-body"><pre class="history-notes">${historyAccordian.note}</pre></div>
+                </div>
+              </div>`;
+    }
+
+    document.getElementById(accordianId).innerHTML = html;
+
+    $("#historyModel").modal("show");
+  });
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

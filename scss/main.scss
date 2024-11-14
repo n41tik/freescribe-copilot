@@ -59,7 +59,6 @@ button {
 
 // Popup-specific styles
 .popup-container {
-  width: 350px;
   padding: 20px;
 
   .container {
@@ -74,7 +73,7 @@ button {
   padding: 2rem;
 }
 
-#toggleConfig {
+.settings {
   text-decoration: none;
   color: $secondary-color;
   font-size: 0.9rem;
@@ -302,4 +301,8 @@ h2 {
   font-size: 1.2rem; /* Larger font size for visibility */
   color: $primary-color; /* Use primary color for the text */
   margin-bottom: 10px; /* Space between message and progress */
+}
+
+.history-notes {
+  text-wrap: wrap;
 }
