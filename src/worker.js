@@ -233,7 +233,7 @@ async function loadLlm(model) {
 }
 
 async function generate(data) {
-  const { message, type } = data;
+  const { message, type, extra } = data;
   // Retrieve the text-generation pipeline.
   const generator = await LlmPipeline.getInstance();
 
@@ -261,6 +261,7 @@ async function generate(data) {
     data: {
       type: type,
       text: outputText,
+      extra: extra,
     },
   });
 }
