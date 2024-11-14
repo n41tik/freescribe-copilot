@@ -2,6 +2,7 @@ import { loadConfig } from "./config.js";
 import { sanitizeInput, formatBytes } from "./helpers.js";
 import { Logger } from "./logger.js";
 import { SilenceDetector } from "./silenceDetector.js";
+import { saveNotesHistory, getHistory } from "./history.js";
 
 let config;
 let mediaRecorder;
@@ -704,6 +705,7 @@ async function showGeneratedNotes(notes) {
   notesElement.style.display = "block";
   copyNotesButton.style.display = "block";
   recordButton.disabled = false;
+  saveNotesHistory(notes);
 }
 
 // Add this function to handle copying notes to clipboard
@@ -747,6 +749,37 @@ audioInputSelect.addEventListener("change", startMicStream);
 generateNotesButton.addEventListener("click", preProcessData);
 
 copyNotesButton.addEventListener("click", copyNotesToClipboard);
+
+document
+  .getElementById("showHistory")
+  .addEventListener("click", async function () {
+    let html = ``;
+
+    let notes_history = await getHistory();
+
+    const accordianId = "historyAccordian";
+
+    for (let index = 0; index < notes_history.length; index++) {
+      const historyAccordian = notes_history[index];
+
+      let dateTime = new Date(historyAccordian.time).toLocaleString();
+
+      html += `<div class="accordion-item">
+                <h2 class="accordion-header">
+                  <buttonn class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                    data-bs-target="#historyAccordian${index}" aria-expanded="false" aria-controls="historyAccordian${index}"
+                  >${dateTime}</button>
+                </h2>
+                <div id="historyAccordian${index}" class="accordion-collapse collapse" data-bs-parent="#${accordianId}">
+                  <div class="accordion-body"><pre class="history-notes">${historyAccordian.note}</pre></div>
+                </div>
+              </div>`;
+    }
+
+    document.getElementById(accordianId).innerHTML = html;
+
+    $("#historyModel").modal("show");
+  });
 
 // Listen for messages from the background script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
