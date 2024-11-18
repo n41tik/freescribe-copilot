@@ -708,22 +708,21 @@ async function showGeneratedNotes(notes) {
   saveNotesHistory(notes);
 }
 
-// Add this function to handle copying notes to clipboard
-function copyNotesToClipboard() {
-  const notes = notesElement.textContent; // Get the text content of the notes
-  if (notes.trim() === "") {
-    toastr.info("No notes to copy.");
+// function to handle copying notes to clipboard
+function copyNotesToClipboard(text, source = "notes") {
+  if (text.trim() === "") {
+    toastr.info(`No ${source} to copy.`);
     return;
   }
 
   navigator.clipboard
-    .writeText(notes)
+    .writeText(text)
     .then(() => {
-      toastr.info("Notes copied to clipboard!");
+      toastr.info(`${source} copied to clipboard!`);
     })
     .catch((err) => {
       logger.error("Failed to copy: ", err);
-      toastr.info("Failed to copy notes. Please try again.");
+      toastr.info(`Failed to copy ${source}. Please try again.`);
     });
 }
 
@@ -748,7 +747,9 @@ audioInputSelect.addEventListener("change", startMicStream);
 
 generateNotesButton.addEventListener("click", preProcessData);
 
-copyNotesButton.addEventListener("click", copyNotesToClipboard);
+copyNotesButton.addEventListener("click", function () {
+  copyNotesToClipboard(notesElement.textContent);
+});
 
 document
   .getElementById("showHistory")
@@ -771,12 +772,32 @@ document
                   >${dateTime}</button>
                 </h2>
                 <div id="historyAccordian${index}" class="accordion-collapse collapse" data-bs-parent="#${accordianId}">
-                  <div class="accordion-body"><pre class="history-notes">${historyAccordian.note}</pre></div>
+                  <div class="accordion-body">
+                    <button data-copy-id="history-note-${index}" type="button" class="btn btn-sm btn-secondary copy-history-btn">
+                      <i class="fas fa-copy"></i> Copy Notes
+                    </button>
+                    <pre class="history-notes" id="history-note-${index}">${historyAccordian.note}</pre>
+                  </div>
                 </div>
               </div>`;
     }
 
     document.getElementById(accordianId).innerHTML = html;
+
+    let copyHistoryButton = document.getElementsByClassName("copy-history-btn");
+
+    function copyHistory(event) {
+      let historyNotesId = event.currentTarget.getAttribute("data-copy-id");
+
+      copyNotesToClipboard(
+        document.getElementById(historyNotesId).textContent,
+        "history notes"
+      );
+    }
+
+    for (let index = 0; index < copyHistoryButton.length; index++) {
+      copyHistoryButton[index].addEventListener("click", copyHistory);
+    }
 
     $("#historyModel").modal("show");
   });
