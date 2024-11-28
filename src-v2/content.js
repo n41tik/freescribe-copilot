@@ -101,7 +101,7 @@ async function init() {
             statusLabel.style.color = color;
         };
 
-        function copyNotesToClipboard(text, source = "notes") {
+        let copyNotesToClipboard = (text, source = "notes") =>{
             if (text.trim() === "") {
                 // toastr.info(`No ${source} to copy.`);
                 return;
