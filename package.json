@@ -10,10 +10,12 @@
     "ts-loader": "^9.5.1"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prod": "webpack --config webpack.prod.js",
-    "dev": "webpack --config webpack.dev.js",
-    "watch": "webpack --watch --config webpack.dev.js"
+    "watch": "webpack --watch --config webpack.v2.js",
+    "dev": "webpack --config webpack.v2.js",
+    "prod": "webpack --config webpack.v2.js --env production",
+    "watch-v1": "webpack --watch --config webpack.v1.js",
+    "dev-v1": "webpack --config webpack.v1.js",
+    "prod-v1": "webpack --config webpack.v1.js --env production"
   },
   "repository": {
     "type": "git",
