@@ -40,6 +40,7 @@ function showConfig() {
   document.getElementById("llmHost").value = config.LLM_HOST;
   document.getElementById("llmPort").value = config.LLM_PORT;
   document.getElementById("llmSecure").value = config.LLM_SECURE;
+  document.getElementById("llmApiKey").value = config.LLM_API_KEY;
   document.getElementById("llmModel").value = config.LLM_MODEL;
 
   document.getElementById("llmContextBefore").value = config.LLM_CONTEXT_BEFORE;
@@ -152,7 +153,7 @@ function updateConfig() {
   config.LLM_HOST = document.getElementById("llmHost").value;
   config.LLM_PORT = parseInt(document.getElementById("llmPort").value);
   config.LLM_SECURE = parseInt(document.getElementById("llmSecure").value);
-
+  config.LLM_API_KEY = document.getElementById("llmApiKey").value;
   config.LLM_URL =
     generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT) +
     "/v1/chat/completions";

@@ -284,6 +284,10 @@ async function stopRecording() {
         clearTimeout(silenceTimeout);
         silenceTimeout = null;
     }
+    if (scriptProcessor) {
+        scriptProcessor.disconnect();
+        scriptProcessor = null;
+    }
     mediaRecorder.stop();
     if (tabStream) {
         tabStream.getTracks().forEach((t) => t.stop());
