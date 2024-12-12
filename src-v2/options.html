@@ -255,19 +255,13 @@
             </div>
           <div class="llmServerSettings config-item">
             <label for="llmModel">LLM Model:</label>
-            &nbsp;<i
-              class="fas fa-question-circle"
-              data-toggle="tooltip"
-              data-placement="right"
-              title="Enter the name of the language model to use."
-            ></i>
-            <input
-              type="text"
-              id="llmModel"
-              name="llmModel"
-              class="form-control"
-              required
-            />
+              <select
+                      id="llmModel"
+                      name="llmModel"
+                      class="form-select"
+              >
+                <!-- Options will be populated dynamically -->
+              </select>
           </div>
           <div class="config-item">
             <label for="llmContextBefore">LLM Context Before:</label>

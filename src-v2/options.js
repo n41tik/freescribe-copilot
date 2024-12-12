@@ -3,6 +3,42 @@ import { isValidUrl, generateBaseUrl } from "../src/helpers.js";
 
 let config;
 
+function getOptionsFromArray(array) {
+  return array.map(
+      (model) => `<option value="${model}">${model}</option>`
+  ).join("");
+}
+
+function loadRemoteModels(baseUrl) {
+  const llmServerModelSelect = document.getElementById("llmModel");
+  fetch(baseUrl + "/v1/models").then((response) => {
+    if (response.ok) {
+      response.json().then((data) => {
+        let models = data.data.map((model) => model.id);
+
+        llmServerModelSelect.innerHTML = getOptionsFromArray(models);
+        llmServerModelSelect.value = config.LLM_MODEL;
+      });
+    } else {
+      llmServerModelSelect.innerHTML = "<option value=''>Error: Unable to load models</option>";
+      llmServerModelSelect.value = "";
+    }
+  }).catch(() => {
+    llmServerModelSelect.innerHTML = "<option value=''>Error: Unable to load models</option>";
+    llmServerModelSelect.value = "";
+  });
+}
+
+function loadRemoteModelsOnSettingsChange() {
+  const llmHost = document.getElementById("llmHost").value;
+  const llmPort = document.getElementById("llmPort").value;
+  const llmSecure = parseInt(document.getElementById("llmSecure").value);
+
+  if (isValidUrl(generateBaseUrl(llmSecure, llmHost, llmPort))) {
+    loadRemoteModels(generateBaseUrl(llmSecure, llmHost, llmPort));
+  }
+}
+
 function showConfig() {
   // Transcription settings
   document.getElementById("transcriptionLocal").checked =
@@ -32,16 +68,15 @@ function showConfig() {
   toggleLLMSettings();
 
   const llmLocalModelSelect = document.getElementById("llmLocalModel");
-  llmLocalModelSelect.innerHTML = config.LLM_LOCAL_MODELS.map(
-    (model) => `<option value="${model}">${model}</option>`
-  ).join("");
+  llmLocalModelSelect.innerHTML = getOptionsFromArray(config.LLM_LOCAL_MODELS);
   llmLocalModelSelect.value = config.LLM_LOCAL_MODEL;
 
   document.getElementById("llmHost").value = config.LLM_HOST;
   document.getElementById("llmPort").value = config.LLM_PORT;
   document.getElementById("llmSecure").value = config.LLM_SECURE;
   document.getElementById("llmApiKey").value = config.LLM_API_KEY;
-  document.getElementById("llmModel").value = config.LLM_MODEL;
+
+  loadRemoteModels(generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT));
 
   document.getElementById("llmContextBefore").value = config.LLM_CONTEXT_BEFORE;
   document.getElementById("llmContextAfter").value = config.LLM_CONTEXT_AFTER;
@@ -96,6 +131,7 @@ function toggleLLMSettings() {
     showHideSettings(".llmLocalSettings", "visible", "hidden");
     showHideSettings(".llmServerSettings", "hidden", "visible");
   } else {
+    loadRemoteModels(generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT));
     showHideSettings(".llmLocalSettings", "hidden", "visible");
     showHideSettings(".llmServerSettings", "visible", "hidden");
   }
@@ -272,7 +308,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
         customUrl: "Please enter a valid URL format for the LLM.",
       },
       llmModel: {
-        required: "Please enter the LLM Model.",
+        required: "Please select the LLM Model.",
       },
       llmContextBefore: {
         required: "Please enter the LLM Context used before the prompt.",
@@ -314,6 +350,11 @@ document.addEventListener("DOMContentLoaded", async function (event) {
   document
     .getElementById("postProcessing")
     .addEventListener("change", togglePostProcessingSettings);
+
+  // listen to when the LLM server settings change and update the models
+  document.getElementById("llmHost").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
+  document.getElementById("llmPort").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
+  document.getElementById("llmSecure").addEventListener("change", loadRemoteModelsOnSettingsChange);
 });
 
 // Close without saving
