@@ -65,7 +65,6 @@ function showConfig() {
 
   // LLM settings
   document.getElementById("llmLocal").checked = config.LLM_LOCAL;
-  toggleLLMSettings();
 
   const llmLocalModelSelect = document.getElementById("llmLocalModel");
   llmLocalModelSelect.innerHTML = getOptionsFromArray(config.LLM_LOCAL_MODELS);
@@ -76,7 +75,7 @@ function showConfig() {
   document.getElementById("llmSecure").value = config.LLM_SECURE;
   document.getElementById("llmApiKey").value = config.LLM_API_KEY;
 
-  loadRemoteModels(generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT));
+  toggleLLMSettings();
 
   document.getElementById("llmContextBefore").value = config.LLM_CONTEXT_BEFORE;
   document.getElementById("llmContextAfter").value = config.LLM_CONTEXT_AFTER;
@@ -131,9 +130,9 @@ function toggleLLMSettings() {
     showHideSettings(".llmLocalSettings", "visible", "hidden");
     showHideSettings(".llmServerSettings", "hidden", "visible");
   } else {
-    loadRemoteModels(generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT));
     showHideSettings(".llmLocalSettings", "hidden", "visible");
     showHideSettings(".llmServerSettings", "visible", "hidden");
+    loadRemoteModelsOnSettingsChange();
   }
 }
 
