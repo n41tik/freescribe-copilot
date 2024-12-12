@@ -424,7 +424,7 @@ async function updateGUI(text) {
     }
 
     await sendMessage('recording-status', {
-        text: textMessage, color: "#4c28a7", status: "transcribing-complete", transcription: speechToText
+        text: textMessage, color: "#4c28a7", status: "transcribing-complete", transcription: speechToText, realtime: (config.REALTIME && isRecording)
     });
 
     // Hide loader

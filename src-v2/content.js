@@ -235,6 +235,12 @@ async function init() {
                         stopButton.style.display = "none";
                         pauseButton.style.display = "none";
                     } else if (status === "stopped" || status === "transcribing-complete") {
+                        if (message.data?.realtime) {
+                            userInput.style.display = "block";
+                            userInput.value = message.data.transcription;
+                            return;
+                        }
+
                         recordButton.style.display = "block";
                         stopButton.style.display = "none";
                         pauseButton.style.display = "none";
