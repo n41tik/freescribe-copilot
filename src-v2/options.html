@@ -255,13 +255,22 @@
             </div>
           <div class="llmServerSettings config-item">
             <label for="llmModel">LLM Model:</label>
-              <select
-                      id="llmModel"
-                      name="llmModel"
-                      class="form-select"
-              >
-                <!-- Options will be populated dynamically -->
-              </select>
+            <div class="d-flex align-items-stretch">
+              <div class="me-2">
+                <select
+                        id="llmModel"
+                        name="llmModel"
+                        class="form-select"
+                >
+                  <!-- Options will be populated dynamically -->
+                </select>
+              </div>
+              <div class="me-2">
+                <button type="button" id="llmModelRefresh" class="btn btn-primary">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+              </div>
+            </div>
           </div>
           <div class="config-item">
             <label for="llmContextBefore">LLM Context Before:</label>

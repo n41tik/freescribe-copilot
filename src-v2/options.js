@@ -354,6 +354,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
   document.getElementById("llmHost").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
   document.getElementById("llmPort").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
   document.getElementById("llmSecure").addEventListener("change", loadRemoteModelsOnSettingsChange);
+  document.getElementById("llmModelRefresh").addEventListener("click", loadRemoteModelsOnSettingsChange);
 });
 
 // Close without saving
