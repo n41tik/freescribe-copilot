@@ -19,6 +19,7 @@ export const defaultConfig = {
   LLM_HOST: "localhost",
   LLM_PORT: 1337,
   LLM_SECURE: 0,
+  LLM_API_KEY: "",
   LLM_MODEL: "gemma-2-2b-it",
   // Prompt
   LLM_CONTEXT_BEFORE:
