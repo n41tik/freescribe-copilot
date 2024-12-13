@@ -42,15 +42,27 @@ chrome.commands.onCommand.addListener((command) => {
     }
 });
 
+let tabsActive = [];
+
+function getHostFromURL(url) {
+    try {
+        const parsedURL = new URL(url);
+        return parsedURL.host; // Includes hostname and port, if any
+    } catch (e) {
+        console.error('Invalid URL:', e.message);
+        return null;
+    }
+}
+
 // Function to load the extension
-async function loadExtension(tabId) {
+async function loadExtension(tabId, host) {
     const existingContexts = await chrome.runtime.getContexts({});
 
     const offscreenDocument = existingContexts.find((c) => c.contextType === 'OFFSCREEN_DOCUMENT');
 
     // If an offscreen document is already open, close it
     if (offscreenDocument) {
-       await chrome.offscreen.closeDocument();
+        await chrome.offscreen.closeDocument();
     }
 
     // Create a new offscreen document
@@ -69,37 +81,65 @@ async function loadExtension(tabId) {
     await chrome.scripting.executeScript({
         target: {tabId: tabId, allFrames: true}, files: ['content.js'],
     });
+
+    if (!host) {
+        return;
+    }
+
+    // Add the tab to the list of active tabs
+    tabsActive.push(host);
+}
+
+async function unloadExtension(tabId, host) {
+    // Remove the tab from the list of active tabs
+    tabsActive = tabsActive.filter((h) => h !== host);
+
+    chrome.tabs.query({}, (tabs) => {
+        // send message to all the tabs that has the content script injected
+        for (let tab of tabs) {
+            let tabHost = getHostFromURL(tab.url);
+            if (host === tabHost) {
+                chrome.tabs.sendMessage(tab.id, {
+                    target: 'content', type: 'close-extension',
+                });
+            }
+        }
+    });
 }
 
 // Listener for the extension icon click
 chrome.action.onClicked.addListener(async (tab) => {
-    // Load the extension
-    await loadExtension(tab.id);
+    // Get the host from the URL
+    const host = getHostFromURL(tab.url);
+
+    if (tabsActive.includes(host)) {
+        await unloadExtension(tab.id, host);
+    } else {
+        await loadExtension(tab.id, host);
+    }
 });
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.status === "complete" && tab.url) {
+        let host = getHostFromURL(tab.url);
+
+        if (host && tabsActive.includes(host)) {
+            loadExtension(tabId);
+        }
+    }
+});
+
 
 // Listener for messages from other parts of the extension
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.target === "background") {
-        if (message.type === "capture-tab-audio") {
-            // Capture the audio from the active tab
-            chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-                const tab = tabs[0];
-                const tabId = tab.id;
-
-                chrome.tabCapture.getMediaStreamId({
-                    targetTabId: tabId
-                }, (streamId) => {
-                    sendResponse({success: true, streamId: streamId});
-                });
-            });
-            return true;
-        } else if (message.type === "load-config") {
+        if (message.type === "load-config") {
             // Load the configuration
             loadConfig().then((config) => {
                 sendResponse({success: true, config: config});
             });
             return true;
-        } else if(message.type === "show-page") {
+        } else if (message.type === "show-page") {
             // Open the history page in a new tab
             chrome.tabs.create({
                 url: chrome.runtime.getURL(message.page),
@@ -108,9 +148,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
     } else if (message.target === "content") {
         // Forward the message to the content script
-        chrome.tabs.query({active: true, currentWindow: true}, (tabs) => {
-            if (tabs[0]?.id) {
-                chrome.tabs.sendMessage(tabs[0].id, message);
+        chrome.tabs.query({}, (tabs) => {
+            // send message to all the tabs that has the content script injected
+            for (let tab of tabs) {
+                let host = getHostFromURL(tab.url);
+                if (tabsActive.includes(host)) {
+                    chrome.tabs.sendMessage(tab.id, message);
+                }
             }
         });
     }
