@@ -1,5 +1,5 @@
 import { loadConfig, saveConfig } from "../src/config.js";
-import { isValidUrl, generateBaseUrl } from "../src/helpers.js";
+import { isValidUrl } from "../src/helpers.js";
 
 let config;
 
@@ -11,7 +11,7 @@ function getOptionsFromArray(array) {
 
 function loadRemoteModels(baseUrl) {
   const llmServerModelSelect = document.getElementById("llmModel");
-  fetch(baseUrl + "/v1/models").then((response) => {
+  fetch(baseUrl + "/models").then((response) => {
     if (response.ok) {
       response.json().then((data) => {
         let models = data.data.map((model) => model.id);
@@ -30,12 +30,10 @@ function loadRemoteModels(baseUrl) {
 }
 
 function loadRemoteModelsOnSettingsChange() {
-  const llmHost = document.getElementById("llmHost").value;
-  const llmPort = document.getElementById("llmPort").value;
-  const llmSecure = parseInt(document.getElementById("llmSecure").value);
+  const llmUrl = document.getElementById("llmUrl").value.replace(/\/$/, "");
 
-  if (isValidUrl(generateBaseUrl(llmSecure, llmHost, llmPort))) {
-    loadRemoteModels(generateBaseUrl(llmSecure, llmHost, llmPort));
+  if (isValidUrl(llmUrl)) {
+    loadRemoteModels(llmUrl);
   }
 }
 
@@ -54,12 +52,7 @@ function showConfig() {
     ).join("");
   transcriptionLocalModelSelect.value = config.TRANSCRIPTION_LOCAL_MODEL;
 
-  document.getElementById("transcriptionHost").value =
-    config.TRANSCRIPTION_HOST;
-  document.getElementById("transcriptionPort").value =
-    config.TRANSCRIPTION_PORT;
-  document.getElementById("transcriptionSecure").value =
-    config.TRANSCRIPTION_SECURE;
+  document.getElementById("transcriptionUrl").value = config.TRANSCRIPTION_URL;
   document.getElementById("transcriptionApiKey").value =
     config.TRANSCRIPTION_API_KEY;
 
@@ -70,9 +63,7 @@ function showConfig() {
   llmLocalModelSelect.innerHTML = getOptionsFromArray(config.LLM_LOCAL_MODELS);
   llmLocalModelSelect.value = config.LLM_LOCAL_MODEL;
 
-  document.getElementById("llmHost").value = config.LLM_HOST;
-  document.getElementById("llmPort").value = config.LLM_PORT;
-  document.getElementById("llmSecure").value = config.LLM_SECURE;
+  document.getElementById("llmUrl").value = config.LLM_URL;
   document.getElementById("llmApiKey").value = config.LLM_API_KEY;
 
   toggleLLMSettings();
@@ -119,9 +110,13 @@ function toggleTranscriptionSettings() {
   if (document.getElementById("transcriptionLocal").checked) {
     showHideSettings(".transcriptionLocalSettings", "visible", "hidden");
     showHideSettings(".transcriptionServerSettings", "hidden", "visible");
+    formValidations('.transcription-local-form', true);
+    formValidations('.transcription-server-form', false);
   } else {
     showHideSettings(".transcriptionLocalSettings", "hidden", "visible");
     showHideSettings(".transcriptionServerSettings", "visible", "hidden");
+    formValidations('.transcription-local-form', false);
+    formValidations('.transcription-server-form', true);
   }
 }
 
@@ -129,9 +124,13 @@ function toggleLLMSettings() {
   if (document.getElementById("llmLocal").checked) {
     showHideSettings(".llmLocalSettings", "visible", "hidden");
     showHideSettings(".llmServerSettings", "hidden", "visible");
+    formValidations('.llm-local-form', true);
+    formValidations('.llm-server-form', false);
   } else {
     showHideSettings(".llmLocalSettings", "hidden", "visible");
     showHideSettings(".llmServerSettings", "visible", "hidden");
+    formValidations('.llm-local-form', false);
+    formValidations('.llm-server-form', true);
     loadRemoteModelsOnSettingsChange();
   }
 }
@@ -163,35 +162,16 @@ function updateConfig() {
   config.TRANSCRIPTION_LOCAL_MODEL = document.getElementById(
     "transcriptionLocalModel"
   ).value;
-  config.TRANSCRIPTION_HOST =
-    document.getElementById("transcriptionHost").value;
-  config.TRANSCRIPTION_PORT = parseInt(
-    document.getElementById("transcriptionPort").value
-  );
-  config.TRANSCRIPTION_SECURE = parseInt(
-    document.getElementById("transcriptionSecure").value
-  );
+  config.TRANSCRIPTION_URL = document.getElementById("transcriptionUrl").value;
   config.TRANSCRIPTION_API_KEY = document.getElementById(
     "transcriptionApiKey"
   ).value;
 
-  config.TRANSCRIPTION_URL =
-    generateBaseUrl(
-      config.TRANSCRIPTION_SECURE,
-      config.TRANSCRIPTION_HOST,
-      config.TRANSCRIPTION_PORT
-    ) + "/whisperaudio";
-
   // LLM settings
   config.LLM_LOCAL = document.getElementById("llmLocal").checked;
   config.LLM_LOCAL_MODEL = document.getElementById("llmLocalModel").value;
-  config.LLM_HOST = document.getElementById("llmHost").value;
-  config.LLM_PORT = parseInt(document.getElementById("llmPort").value);
-  config.LLM_SECURE = parseInt(document.getElementById("llmSecure").value);
+  config.LLM_URL = document.getElementById("llmUrl").value.replace(/\/$/, "");
   config.LLM_API_KEY = document.getElementById("llmApiKey").value;
-  config.LLM_URL =
-    generateBaseUrl(config.LLM_SECURE, config.LLM_HOST, config.LLM_PORT) +
-    "/v1/chat/completions";
 
   config.LLM_MODEL = document.getElementById("llmModel").value;
   config.LLM_CONTEXT_BEFORE = document.getElementById("llmContextBefore").value;
@@ -302,7 +282,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
       transcriptionApiKey: {
         required: "Please enter the Transcription Server API Key.",
       },
-      llmHost: {
+      llmUrl: {
         required: "Please enter the LLM URL.",
         customUrl: "Please enter a valid URL format for the LLM.",
       },
@@ -351,9 +331,7 @@ document.addEventListener("DOMContentLoaded", async function (event) {
     .addEventListener("change", togglePostProcessingSettings);
 
   // listen to when the LLM server settings change and update the models
-  document.getElementById("llmHost").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
-  document.getElementById("llmPort").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
-  document.getElementById("llmSecure").addEventListener("change", loadRemoteModelsOnSettingsChange);
+  document.getElementById("llmUrl").addEventListener("focusout", loadRemoteModelsOnSettingsChange);
   document.getElementById("llmModelRefresh").addEventListener("click", loadRemoteModelsOnSettingsChange);
 });
 

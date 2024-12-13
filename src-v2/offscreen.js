@@ -435,7 +435,7 @@ async function updateGUI(text) {
 
 async function llmApiCall(prompt) {
     try {
-        const response = await fetch(config.LLM_URL, {
+        const response = await fetch(config.LLM_URL + "/chat/completions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

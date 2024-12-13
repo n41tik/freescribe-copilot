@@ -59,67 +59,24 @@
               <select
                 id="transcriptionLocalModel"
                 name="transcriptionLocalModel"
-                class="form-select"
+                class="form-select transcription-local-form"
               >
                 <!-- Options will be populated dynamically -->
               </select>
             </div>
           </div>
-
-          <div
-            class="transcriptionServerSettings config-item d-flex align-items-center"
-          >
-            <div class="me-2">
-              <label for="transcriptionHost">Host:</label>&nbsp;<i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Enter the host URL for the transcription server."
-              ></i>
-              <input
-                type="text"
-                id="transcriptionHost"
-                name="transcriptionHost"
-                class="form-control"
-                required
-              />
-            </div>
-            <div class="me-2">
-              <label for="transcriptionPort">Port:</label>
-              &nbsp;
-              <i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Enter the port number for the transcription server."
-              ></i>
-              <input
-                type="number"
-                id="transcriptionPort"
-                name="transcriptionPort"
-                class="form-control"
-                min="0"
-                max="65535"
-                required
-              />
-            </div>
-            <div class="me-2">
-              <label for="transcriptionSecure">Is Secure Host?</label>
-              &nbsp;<i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Select whether the transcription server uses a secure connection (HTTPS)."
-              ></i>
-              <select
-                id="transcriptionSecure"
-                name="transcriptionSecure"
-                class="form-select"
-              >
-                <option value="1">Yes</option>
-                <option value="0">No</option>
-              </select>
-            </div>
+          <div class="transcriptionServerSettings config-item">
+            <label for="transcriptionUrl">Transcription Server URL:</label>
+            &nbsp;<i class="fas fa-question-circle"
+                     data-toggle="tooltip"
+                     data-placement="right"
+                     title="Enter the API URL for accessing the transcription server."></i>
+            <input
+                    type="text"
+                    id="transcriptionUrl"
+                    name="transcriptionUrl"
+                    class="form-control transcription-server-form"
+            />
           </div>
           <div class="transcriptionServerSettings config-item">
             <label for="transcriptionApiKey"
@@ -135,7 +92,7 @@
               type="text"
               id="transcriptionApiKey"
               name="transcriptionApiKey"
-              class="form-control"
+              class="form-control transcription-server-form"
             />
           </div>
 
@@ -181,78 +138,42 @@
               <select
                 id="llmLocalModel"
                 name="llmLocalModel"
-                class="form-select"
+                class="form-select llm-local-form"
               >
                 <!-- Options will be populated dynamically -->
               </select>
             </div>
           </div>
-
-          <div class="llmServerSettings config-item d-flex align-items-center">
-            <div class="me-2">
-              <label for="llmHost">Host:</label>
-              &nbsp;<i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Enter the host URL for the language model server."
-              ></i>
-              <input
-                type="text"
-                id="llmHost"
-                name="llmHost"
-                class="form-control"
-                required
-              />
-            </div>
-            <div class="me-2">
-              <label for="llmPort">Port:</label>
-              &nbsp;
-              <i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Enter the port number for the language model server."
-              ></i>
-              <input
-                type="number"
-                id="llmPort"
-                name="llmPort"
-                class="form-control"
-                min="0"
-                max="65535"
-                required
-              />
-            </div>
-            <div class="me-2">
-              <label for="llmSecure">Is Secure Host?</label>
-              &nbsp;<i
-                class="fas fa-question-circle"
-                data-toggle="tooltip"
-                data-placement="right"
-                title="Select whether the language model server uses a secure connection (HTTPS)."
-              ></i>
-              <select id="llmSecure" name="llmSecure" class="form-select">
-                <option value="1">Yes</option>
-                <option value="0">No</option>
-              </select>
-            </div>
-          </div>
-            <div class="llmServerSettings config-item">
-                <label for="llmApiKey">LLM Server API Key:</label>
-                &nbsp;<i
+          <div class="llmServerSettings config-item">
+            <label for="llmUrl">LLM Server URL:</label>
+            &nbsp;<i
                   class="fas fa-question-circle"
                   data-toggle="tooltip"
                   data-placement="right"
-                  title="Enter the API key for accessing the language model server."
-                ></i>
-                <input
-                  type="text"
-                  id="llmApiKey"
-                  name="llmApiKey"
-                  class="form-control"
-                />
-            </div>
+                  title="Enter the API URL for accessing the language model server."
+          ></i>
+            <input
+                    type="text"
+                    id="llmUrl"
+                    name="llmUrl"
+                    class="form-control llm-server-form"
+            />
+          </div>
+          <div class="llmServerSettings config-item">
+              <label for="llmApiKey">LLM Server API Key:</label>
+              &nbsp;<i
+                class="fas fa-question-circle"
+                data-toggle="tooltip"
+                data-placement="right"
+                title="Enter the API key for accessing the language model server."
+              ></i>
+              <input
+                type="text"
+                id="llmApiKey"
+                name="llmApiKey"
+                class="form-control"
+              />
+          </div>
           <div class="llmServerSettings config-item">
             <label for="llmModel">LLM Model:</label>
             <div class="d-flex align-items-stretch">
@@ -260,7 +181,7 @@
                 <select
                         id="llmModel"
                         name="llmModel"
-                        class="form-select"
+                        class="form-select llm-server-form"
                 >
                   <!-- Options will be populated dynamically -->
                 </select>
