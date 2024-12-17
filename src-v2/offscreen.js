@@ -20,6 +20,8 @@ let apiCounter = 0;
 let isReady = false;
 let speechToText = '';
 
+let audioDeviceId = null;
+
 async function init() {
     config = await loadConfigData();
     console.log(config);
@@ -146,35 +148,35 @@ function setStatus(status) {
     }
 }
 
-async function startRecording(streamId) {
+async function startRecording() {
     if (mediaRecorder?.state === 'recording') {
         throw new Error('Called startRecording while recording is in progress.');
     }
 
+    config = await loadConfigData();
+    console.log(config);
+
     apiCounter = 0;
     audioChunks = [];
 
-    try {
-        tabStream = await navigator.mediaDevices.getUserMedia({
+    let micStream;
+
+    let audioConstraints = {audio: true, video: false}
+
+    if (audioDeviceId) {
+        audioConstraints = {
             audio: {
-                mandatory: {
-                    chromeMediaSource: 'tab', chromeMediaSourceId: streamId
-                }
-            }, video: false
-        });
-    } catch (error) {
-        console.error('Error capturing tab audio:', error);
-        sendMessage('recording-status', {
-            text: "Error: Unable to start recording.", color: "#dc3545", status: "error"
-        });
-        return;
+                deviceId: audioDeviceId
+            },
+            video: false
+        }
     }
 
-    let micStream;
+    console.log(audioConstraints);
 
     // Capture microphone audio
     try {
-        micStream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+        micStream = await navigator.mediaDevices.getUserMedia(audioConstraints);
     } catch (error) {
         console.error('Error capturing microphone audio:', error);
         sendMessage('recording-status', {
@@ -183,30 +185,8 @@ async function startRecording(streamId) {
         return;
     }
 
-    // Create an AudioContext to mix streams
-    const audioContext = new AudioContext();
-    const tabSource = audioContext.createMediaStreamSource(tabStream);
-    const micSource = audioContext.createMediaStreamSource(micStream);
-    const destination = audioContext.createMediaStreamDestination();
-
-    // Create a gain node for the tab audio (for volume control if needed)
-    const tabGain = audioContext.createGain();
-    tabGain.gain.value = 1; // Set to 1 for passthrough, or adjust as needed
-
-    // Connect the tab audio to both the destination and the audio context destination (speakers)
-    tabSource.connect(tabGain);
-    tabGain.connect(destination);
-    tabGain.connect(audioContext.destination);
-
-    // Connect both sources to the destination
-    tabSource.connect(destination);
-    micSource.connect(destination);
-
-    // Combine the audio tracks into a single MediaStream
-    const combinedStream = destination.stream;
-
     // Start recording.
-    mediaRecorder = new MediaRecorder(combinedStream, {mimeType: 'audio/webm'});
+    mediaRecorder = new MediaRecorder(micStream, {mimeType: 'audio/webm'});
 
     const silenceDetector = new SilenceDetector(config);
 
@@ -235,9 +215,11 @@ async function startRecording(streamId) {
     };
 
     if (config.REALTIME) {
+        // Create an AudioContext to mix streams
+        const audioContext = new AudioContext();
+        const micSource = audioContext.createMediaStreamSource(micStream);
         scriptProcessor = audioContext.createScriptProcessor(4096, 1, 1);
         micSource.connect(scriptProcessor);
-        tabSource.connect(scriptProcessor);
         scriptProcessor.connect(audioContext.destination);
 
         let recordingStartTime = Date.now();
@@ -607,11 +589,42 @@ async function showGeneratedNotes(notes) {
     });
 }
 
+function getAudioDeviceList() {
+    // Use the standard Web Audio API to enumerate devices
+    navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+            let deviceList = [];
+
+            devices.forEach((device) => {
+                if (device.kind === "audioinput" && device.deviceId && device.deviceId !== "") {
+                    let option = {};
+                    option.value = device.deviceId;
+                    option.selected = device.deviceId === audioDeviceId;
+
+                    if (device.label) {
+                        option.text = device.label;
+                    } else {
+                        // If label is not available, use the kind and generated ID
+                        option.text = `${device.kind} (${option.value})`;
+                    }
+
+                    deviceList.push(option);
+                }
+            });
+
+            sendMessage('audio-devices', deviceList);
+        })
+        .catch((err) => {
+            logger.error("Error enumerating devices:", err);
+        });
+}
+
 chrome.runtime.onMessage.addListener(async (message) => {
     if (message.target === 'offscreen') {
         switch (message.type) {
             case 'start-recording':
-                startRecording(message.data);
+                startRecording();
                 break;
             case 'stop-recording':
                 stopRecording();
@@ -629,6 +642,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
                 break;
             case 'generate-notes':
                 preProcessData(message.data);
+                break;
+            case 'get-audio-devices':
+                getAudioDeviceList();
+                break;
+            case 'set-audio-device':
+                audioDeviceId = message.data;
                 break;
             default:
                 throw new Error('Unrecognized message:', message.type);

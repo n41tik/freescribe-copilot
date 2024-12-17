@@ -3,7 +3,7 @@ import {Logger} from "../src/logger.js";
 import {saveNotesHistory} from "../src/history";
 
 async function init() {
-    if (!document.getElementById("recording-screen")) {
+    if (!document.getElementById("free-scribe-extension")) {
         const response = await fetch(chrome.runtime.getURL('/content.html'));
 
         if (!response.ok) {
@@ -105,28 +105,10 @@ async function init() {
         let copyNotesButton = document.getElementById("copyNotesButton");
         let openPage = document.getElementsByClassName("openPage");
 
-        // Request tab audio capture
-        const captureTabAudio = async () => {
-            return new Promise((resolve, reject) => {
-                chrome.runtime.sendMessage({
-                    target: 'background', type: 'capture-tab-audio'
-                }, (response) => {
-                    if (response.success) {
-                        resolve(response.streamId);
-                    } else {
-                        reject(response.error);
-                    }
-                });
-            });
-        };
-
         // Start recording
         recordButton.addEventListener("click", async () => {
-
-            const tabStreamId = await captureTabAudio();
-
             chrome.runtime.sendMessage({
-                target: 'offscreen', type: 'start-recording', data: tabStreamId
+                target: 'offscreen', type: 'start-recording'
             });
         });
 
@@ -210,6 +192,31 @@ async function init() {
             notesElement.style.display = "none";
         }
 
+        let getAudioDevices = () => {
+            chrome.runtime.sendMessage({
+                target: 'offscreen', type: 'get-audio-devices'
+            });
+        }
+
+        let setAudioDeviceList = (audioDevices) => {
+            let audioDeviceSelect = document.getElementById("audioDeviceSelect");
+
+            audioDeviceSelect.innerHTML = "";
+            audioDevices.forEach((device) => {
+                let option = document.createElement("option");
+                option.value = device.value;
+                option.text = device.text;
+                option.selected = device.selected;
+                audioDeviceSelect.appendChild(option);
+            });
+
+            audioDeviceSelect.addEventListener("change", (e) => {
+                chrome.runtime.sendMessage({
+                    target: 'offscreen', type: 'set-audio-device', data: e.target.value
+                });
+            });
+        }
+
         // Listen for messages from the background script
         chrome.runtime.onMessage.addListener((message) => {
             if (message.target === "content") {
@@ -281,6 +288,11 @@ async function init() {
                         recordButton.disabled = true;
                         updateStatus("Audio capture not ready", "#dc3545");
                     }
+                } else if (message.type === 'audio-devices') {
+                    setAudioDeviceList(message.data);
+                } else if (message.type === 'close-extension') {
+                    // destroy the chat window and icon
+                    document.getElementById("free-scribe-extension").remove();
                 }
             }
         });
@@ -291,6 +303,11 @@ async function init() {
         chrome.runtime.sendMessage({
             target: 'offscreen', type: 'check-status'
         });
+
+        // get audio devices
+        getAudioDevices();
+
+        document.getElementById('audioDeviceSelectRefresh').addEventListener('click', getAudioDevices);
     }
 }
 

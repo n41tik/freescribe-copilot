@@ -1,4 +1,4 @@
-<section class="free-scribe">
+<section class="free-scribe" id="free-scribe-extension">
     <div id="free-scribe-box" title="Open Chat">
         <img id="free-scribe-icon">
     </div>
@@ -9,6 +9,24 @@
             <span>FreeScribe</span>
         </div>
         <div id="recording-screen">
+            <div class="config-item">
+                <label for="audioDeviceSelect">Audio Device:</label>
+                <div class="d-flex">
+                    <div class="me-2">
+                        <select
+                                id="audioDeviceSelect"
+                                class="form-select"
+                        >
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                    <div class="me-2">
+                        <button type="button" id="audioDeviceSelectRefresh" class="btn btn-primary">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <button id="recordButton" class="flex-grow-1 me-2 btn btn-success">
                 <i class="fas fa-microphone"></i> Record
             </button>
