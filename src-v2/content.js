@@ -26,6 +26,7 @@ async function init() {
 
         document.getElementById('refresh-icon').src = chrome.runtime.getURL("refresh.svg");
 
+        let isRecording = false;
         let isDragging = false;
         let dragOffsetX, dragOffsetY, startPosX, startPosY;
         let hasMoved = false;
@@ -292,6 +293,7 @@ async function init() {
                 enableAudioDeviceSelect();
                 updateStatus("Ready to record", "#28a745");
             }, "recording": (data) => {
+                isRecording = true;
                 showStopButton();
                 hideTranscription();
                 hideNotes();
@@ -329,6 +331,7 @@ async function init() {
                 showTranscription(data.transcription);
                 updateStatus("Post-processing", "#007bff");
             }, "complete": (data) => {
+                isRecording = false;
                 showRecordButton();
                 showTranscription(data.transcription);
                 showNotes(data.notes);
@@ -336,6 +339,7 @@ async function init() {
                 updateStatus("Processing complete", "#28a745");
             },
             "error": (data) => {
+                isRecording = false;
                 showRecordButton();
                 enableAudioDeviceSelect();
                 updateStatus(`Error: ${data.message}` , "#dc3545");
@@ -362,6 +366,12 @@ async function init() {
                 const {type, data} = message;
                 let handler = messageHandler[type];
                 handler?.(data);
+            } else if (message?.command === 'start_stop_recording') {
+                if (isRecording) {
+                    stopButton.click();
+                } else {
+                    recordButton.click();
+                }
             }
         });
 

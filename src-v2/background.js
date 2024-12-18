@@ -35,7 +35,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 });
 
 // Listener for keyboard commands and pass the command to the content script or open the options page
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener((command, tab) => {
     switch (command) {
         case "configure":
             // Open the options page
@@ -44,7 +44,7 @@ chrome.commands.onCommand.addListener((command) => {
             break;
         default:
             // Send the command to the content script
-            chrome.runtime.sendMessage({action: command});
+            chrome.tabs.sendMessage(tab.id, {command: command});
             break;
     }
 });
