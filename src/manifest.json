@@ -7,7 +7,6 @@
     "activeTab",
     "tabCapture",
     "storage",
-    "sidePanel",
     "contextMenus"
   ],
   "icons": {
@@ -16,10 +15,9 @@
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
-  "host_permissions": ["<all_urls>"],
-  "side_panel": {
-    "default_path": "index.html"
-  },
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "options_page": "options.html",
   "background": {
     "service_worker": "background.js"

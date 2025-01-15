@@ -9,6 +9,7 @@ lerna-debug.log*
 
 # Dist
 dist/
+dist-firefox/
 
 # Dependency directories
 node_modules/
