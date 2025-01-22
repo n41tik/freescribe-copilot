@@ -453,8 +453,7 @@ async function convertAudioToText(audioBlob) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const result = await response.json();
-        return result;
+        return await response.json();
     } catch (error) {
         logger.error("Audio to text conversion error:", error);
         throw new Error(`Failed to convert audio to text: ${error.message}`, {
@@ -695,12 +694,12 @@ document
 
         let notes_history = await getHistory();
 
-        const accordianId = "historyAccordian";
+        const accordianId = "historyAccordion";
 
         for (let index = 0; index < notes_history.length; index++) {
-            const historyAccordian = notes_history[index];
+            const historyAccordion = notes_history[index];
 
-            let dateTime = new Date(historyAccordian.time).toLocaleString();
+            let dateTime = new Date(historyAccordion.time).toLocaleString();
 
             html += `<div class="accordion-item">
                 <h2 class="accordion-header">
@@ -713,7 +712,7 @@ document
                     <button data-copy-id="history-note-${index}" type="button" class="btn btn-sm btn-secondary copy-history-btn">
                       <i class="fas fa-copy"></i> Copy Notes
                     </button>
-                    <pre class="history-notes" id="history-note-${index}">${historyAccordian.note}</pre>
+                    <pre class="history-notes" id="history-note-${index}">${historyAccordion.note}</pre>
                   </div>
                 </div>
               </div>`;
@@ -723,7 +722,7 @@ document
 
         let copyHistoryButton = document.getElementsByClassName("copy-history-btn");
 
-        function copyHistory(event) {
+        let copyHistory = (event) => {
             let historyNotesId = event.currentTarget.getAttribute("data-copy-id");
 
             copyNotesToClipboard(document.getElementById(historyNotesId).textContent, "history notes");
