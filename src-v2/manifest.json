@@ -10,7 +10,7 @@
     "storage",
     "scripting",
     "tabs",
-    "tabCapture"
+    "notifications"
   ],
   "icons": {
     "16": "icons/icon16.png",

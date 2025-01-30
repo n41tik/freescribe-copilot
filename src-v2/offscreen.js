@@ -68,7 +68,6 @@ async function setState(newState, data = null) {
         newState === RecorderState.LOADING ||
         newState === RecorderState.READY ||
         newState === RecorderState.RECORDING) {
-        console.log("Resetting data");
         newData = defaultData;
     }
 
@@ -94,7 +93,6 @@ async function init() {
     isRecording = false;
 
     config = await loadConfigData();
-    console.log(config);
     logger = new Logger(config);
 
     if (config.TRANSCRIPTION_LOCAL || config.LLM_LOCAL) {
@@ -219,7 +217,6 @@ async function startRecording() {
     }
 
     config = await loadConfigData();
-    console.log(config);
 
     apiCounter = 0;
     audioChunks = [];
@@ -237,8 +234,6 @@ async function startRecording() {
             video: false
         }
     }
-
-    console.log(audioConstraints);
 
     // Capture microphone audio
     try {
@@ -459,7 +454,6 @@ function hideLoader() {
 }
 
 async function updateGUI(text) {
-    console.log(text);
     speechToText += text;
     speechToText = speechToText.trim();
 
@@ -644,7 +638,6 @@ async function postProcessData(text, facts) {
 }
 
 async function showGeneratedNotes(notes) {
-    console.log(notes);
     await setState(RecorderState.COMPLETE, {
         notes: notes
     });
