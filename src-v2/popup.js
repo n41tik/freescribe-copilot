@@ -1,6 +1,5 @@
 import {loadConfig} from "../src/config.js";
 import {Logger} from "../src/logger.js";
-import {saveNotesHistory} from "../src/history";
 
 async function init() {
     let config = await loadConfig();

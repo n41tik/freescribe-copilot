@@ -1,4 +1,5 @@
 import {loadConfig} from "../src/config";
+import {saveNotesHistory} from "../src/history";
 
 // Listener for when the extension is installed or updated and if installed,
 // open the welcome page in a new tab to show the user the new features and ask user permission to the microphone
@@ -38,9 +39,10 @@ chrome.commands.onCommand.addListener((command, tab) => {
             chrome.runtime.openOptionsPage?.() ||
             window.open(chrome.runtime.getURL("options.html"));
             break;
-        default:
-            // Send the command to the content script
-            chrome.tabs.sendMessage(tab.id, {command: command});
+        case "start_stop_recording":
+            chrome.runtime.sendMessage({
+                target: 'offscreen', type: 'toggle-recording'
+            });
             break;
     }
 });
@@ -110,6 +112,38 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true;
         } else if (message.type === "reload-extension") {
             closeExtension();
+        } else if (message.type === 'save-notes') {
+            saveNotesHistory(message.data);
+        }
+    } else if (message.target === 'content') {
+        if (message.type === 'recorder-state') {
+            let data = message.data;
+
+            let text = '';
+            let color = '';
+
+            if (data['state'] === 'error') {
+                text = '!';
+                color = 'red';
+            } else if (data['state'] === 'complete') {
+                text = 'DONE';
+                color = 'green';
+            } else if (data['state'] === 'recording' || data['state'] === 'recording-stopped' || data['state'] === 'transcribing' || data['state'] === 'transcription-complete' || data['state'] === 'realtime-transcribing' || data['state'] === 'pre-processing-prompt' || data['state'] === 'generating-notes' || data['state'] === 'post-processing-prompt') {
+                text = 'REC';
+                color = 'red';
+            } else if (data['state'] === 'paused') {
+                text = 'PAUSED';
+                color = 'yellow';
+            } else if (data['state'] === 'ready') {
+                text = 'READY';
+                color = 'green';
+            } else {
+                text = 'LOAD';
+                color = 'gray';
+            }
+
+            chrome.action.setBadgeText({text});
+            chrome.action.setBadgeBackgroundColor({color});
         }
     }
 });

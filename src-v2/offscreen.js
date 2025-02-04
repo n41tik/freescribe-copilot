@@ -216,6 +216,13 @@ async function startRecording() {
         throw new Error('Called startRecording while recording is in progress.');
     }
 
+    if (state.state !== RecorderState.READY && state.state !== RecorderState.COMPLETE) {
+        await setState(RecorderState.ERROR, {
+            message: "Please wait for the previous operation to complete."
+        });
+        return;
+    }
+
     config = await loadConfigData();
 
     apiCounter = 0;
@@ -268,7 +275,7 @@ async function startRecording() {
                         updateGUI(result.text);
                     });
                 }
-            } else if (!isRecording  && apiCounter === 0) {
+            } else if (!isRecording && apiCounter === 0) {
                 preProcessData(speechToText);
             }
         }
@@ -641,6 +648,7 @@ async function showGeneratedNotes(notes) {
     await setState(RecorderState.COMPLETE, {
         notes: notes
     });
+    sendMessage('save-notes', notes, 'background');
 }
 
 function getAudioDeviceList() {
@@ -698,6 +706,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
             case 'set-audio-device':
                 audioDeviceId = message.data;
                 break;
+            case 'toggle-recording':
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
             case 'init':
                 await init();
                 break;
