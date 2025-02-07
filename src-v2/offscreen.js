@@ -68,7 +68,6 @@ async function setState(newState, data = null) {
         newState === RecorderState.LOADING ||
         newState === RecorderState.READY ||
         newState === RecorderState.RECORDING) {
-        console.log("Resetting data");
         newData = defaultData;
     }
 
@@ -94,7 +93,6 @@ async function init() {
     isRecording = false;
 
     config = await loadConfigData();
-    console.log(config);
     logger = new Logger(config);
 
     if (config.TRANSCRIPTION_LOCAL || config.LLM_LOCAL) {
@@ -218,8 +216,14 @@ async function startRecording() {
         throw new Error('Called startRecording while recording is in progress.');
     }
 
+    if (state.state !== RecorderState.READY && state.state !== RecorderState.COMPLETE) {
+        await setState(RecorderState.ERROR, {
+            message: "Please wait for the previous operation to complete."
+        });
+        return;
+    }
+
     config = await loadConfigData();
-    console.log(config);
 
     apiCounter = 0;
     audioChunks = [];
@@ -237,8 +241,6 @@ async function startRecording() {
             video: false
         }
     }
-
-    console.log(audioConstraints);
 
     // Capture microphone audio
     try {
@@ -273,7 +275,7 @@ async function startRecording() {
                         updateGUI(result.text);
                     });
                 }
-            } else if (!isRecording  && apiCounter === 0) {
+            } else if (!isRecording && apiCounter === 0) {
                 preProcessData(speechToText);
             }
         }
@@ -459,7 +461,6 @@ function hideLoader() {
 }
 
 async function updateGUI(text) {
-    console.log(text);
     speechToText += text;
     speechToText = speechToText.trim();
 
@@ -644,10 +645,10 @@ async function postProcessData(text, facts) {
 }
 
 async function showGeneratedNotes(notes) {
-    console.log(notes);
     await setState(RecorderState.COMPLETE, {
         notes: notes
     });
+    sendMessage('save-notes', notes, 'background');
 }
 
 function getAudioDeviceList() {
@@ -705,6 +706,12 @@ chrome.runtime.onMessage.addListener(async (message) => {
             case 'set-audio-device':
                 audioDeviceId = message.data;
                 break;
+            case 'toggle-recording':
+                if (isRecording) {
+                    stopRecording();
+                } else {
+                    startRecording();
+                }
             case 'init':
                 await init();
                 break;

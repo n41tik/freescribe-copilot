@@ -14,6 +14,8 @@ module.exports = (env) => {
             offscreen: "./src-v2/offscreen.js",
             history: "./src-v2/history.js",
             main: "./src-v2/main.scss",
+            main2: "./src/main.scss",
+            popup: "./src-v2/popup.js",
         },
         output: {
             filename: "[name].js",
