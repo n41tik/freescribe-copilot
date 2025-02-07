@@ -14,8 +14,9 @@
     "dev": "webpack --config webpack.v2.js",
     "prod": "webpack --config webpack.v2.js --env production",
     "watch-v1": "webpack --watch --config webpack.v1.js",
-    "dev-v1": "webpack --config webpack.v1.js",
-    "prod-v1": "webpack --config webpack.v1.js --env production"
+    "watch-v1-firefox": "webpack --watch --config webpack.v1.js --env firefox",
+    "dev-v1": "webpack --config webpack.v1.js && webpack --config webpack.v1.js --env firefox",
+    "prod-v1": "webpack --config webpack.v1.js --env production && webpack --config webpack.v1.js --env production --env firefox"
   },
   "repository": {
     "type": "git",

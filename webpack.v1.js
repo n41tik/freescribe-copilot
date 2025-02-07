@@ -4,6 +4,9 @@ const MiniCssExtractPlugin = require("mini-css-extract-plugin");
 
 module.exports = (env) => {
   const isProduction = env.production;
+  const isFirefox = env.firefox;
+
+  const dist = isFirefox ? "dist-firefox" : "dist";
 
   return {
     entry: {
@@ -11,11 +14,11 @@ module.exports = (env) => {
       index: "./src/index.js",
       options: "./src/options.js",
       welcome: "./src/welcome.js",
-      main: "./scss/main.scss",
+      main: "./src/main.scss",
     },
     output: {
       filename: "[name].js",
-      path: path.resolve(__dirname, "dist"),
+      path: path.resolve(__dirname, dist),
       clean: true,
       publicPath: "/",
     },
@@ -38,8 +41,8 @@ module.exports = (env) => {
       new CopyWebpackPlugin({
         patterns: [
           {
-            from: "public",
-            to: "",
+            from: "src/*.html",
+            to: "[name].html",
           },
           {
             from: "common",
@@ -64,6 +67,10 @@ module.exports = (env) => {
           {
             from: "src/worker.js",
             to: "",
+          },
+          {
+            from: isFirefox ? "src/manifest-firefox.json" : "src/manifest.json",
+            to: "manifest.json",
           },
         ],
       }),
