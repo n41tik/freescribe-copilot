@@ -5,6 +5,9 @@ on:
     tags:
       - "v*.*.*"
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -24,12 +27,50 @@ jobs:
       - name: Build the project
         run: npm run prod
 
+      - name: Set Versions
+        uses: actions/github-script@v4
+        id: set_version
+        with:
+          script: |
+            const tag = context.ref.substring(10)
+            const no_v = tag.replace('v', '')
+            const dash_index = no_v.lastIndexOf('-')
+            const no_dash = (dash_index > -1) ?  no_v.substring(0, dash_index) : no_v
+            core.setOutput('tag', tag)
+            core.setOutput('no-v', no_v)
+            core.setOutput('no-dash', no_dash)
+
+      - name: Update manifest.json version
+        uses: restackio/update-json-file-action@2.1
+        with:
+          file: dist/manifest.json
+          fields: "{\"version\": \"${{ steps.set_version.outputs.no-dash }}\", \"update_url\": \"${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/update.xml\"}"
+
       - name: Zip the build
         run: |
           cd dist
           zip -r ../freescribe-copilot.zip .
           cd ..
         if: success()
+
+
+      # pack zip and read manifest, can be reused in the following steps
+      - id: packExtensionDir
+        name: Pack extension directory
+        uses: cardinalby/webext-buildtools-pack-extension-dir-action@v1
+        with:
+          extensionDir: 'dist'
+          zipFilePath: 'freescribe-copilot.zip'
+
+      - name : Create CRX file
+        uses: cardinalby/webext-buildtools-chrome-crx-action@v2
+        with:
+          # zip file made at the packExtensionDir step
+          zipFilePath: 'freescribe-copilot.zip'
+          crxFilePath: 'freescribe-copilot.crx'
+          privateKey: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
+          updateXmlPath: 'update.xml'
+          updateXmlCodebaseUrl: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/freescribe-extension-${{ github.ref_name }}.crx'
 
       - name: Create GitHub Release
         id: create_release
@@ -53,3 +94,24 @@ jobs:
           asset_path: freescribe-copilot.zip
           asset_name: freescribe-extension-${{ github.ref_name }}.zip
           asset_content_type: application/zip
+
+      - name: Upload CRX Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: freescribe-copilot.crx
+          asset_name: freescribe-extension-${{ github.ref_name }}.crx
+          asset_content_type: application/x-chrome-extension
+
+      - name: Upload Update XML Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: update.xml
+          asset_name: update.xml
+          asset_content_type: application/xml
+
