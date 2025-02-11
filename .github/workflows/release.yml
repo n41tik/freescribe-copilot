@@ -70,7 +70,7 @@ jobs:
           crxFilePath: 'freescribe-copilot.crx'
           privateKey: ${{ secrets.CHROME_CRX_PRIVATE_KEY }}
           updateXmlPath: 'update.xml'
-          updateXmlCodebaseUrl: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/freescribe-extension-${{ github.ref_name }}.crx'
+          updateXmlCodebaseUrl: ${{ github.server_url }}/${{ github.repository }}/releases/download/${{ github.ref_name }}/freescribe-extension-${{ github.ref_name }}.crx
 
       - name: Create GitHub Release
         id: create_release
